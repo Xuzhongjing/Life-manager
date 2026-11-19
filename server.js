@@ -13,6 +13,7 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
 const Database = require('./db');
+const { seedDemoData } = require('./demo-seed');
 
 // ==================== 配置 ====================
 const PORT = process.env.PORT || 3000;
@@ -1897,8 +1898,8 @@ async function startServer() {
     // 初始化数据表
     initDatabase();
 
-    // 填充测试数据
-    seedHouseholdData();
+    // 填充 demo 用户完整测试数据（幂等，已有数据则跳过）
+    seedDemoData(db);
 
     // 启动 Express 服务
     app.listen(PORT, () => {
