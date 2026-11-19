@@ -15,8 +15,8 @@ const path = require('path');
 const Database = require('./db');
 
 // ==================== 配置 ====================
-const PORT = 3000;
-const JWT_SECRET = 'life-manager-secret-key-2024'; // 生产环境请更换为环境变量
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'life-manager-secret-key-2024';
 const TOKEN_EXPIRES_IN = '7d';
 
 // ==================== 初始化 ====================
