@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随序 · 随心有序</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ===== SVG 图标 Sprite ===== -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <!-- icon-home 首页/看板 -->
+        <symbol id="icon-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+        </symbol>
+
+        <!-- icon-skincare 护肤品（瓶子/乳液） -->
+        <symbol id="icon-skincare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 2H9v2h6V2z"/>
+            <path d="M10 4v2.5L8.5 8.5C7.5 10.5 7 12 7 14v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6c0-2-.5-3.5-1.5-5.5L14 6.5V4"/>
+            <line x1="9" y1="14" x2="15" y2="14"/>
+        </symbol>
+
+        <!-- icon-fridge 冰箱 -->
+        <symbol id="icon-fridge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2"/>
+            <line x1="5" y1="10" x2="19" y2="10"/>
+            <circle cx="8" cy="6" r="1"/>
+            <circle cx="8" cy="15" r="1"/>
+        </symbol>
+
+        <!-- icon-diary 日记本/笔 -->
+        <symbol id="icon-diary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <path d="M8 7h8"/>
+            <path d="M8 11h8"/>
+            <path d="M8 15h5"/>
+        </symbol>
+
+        <!-- icon-user 用户 -->
+        <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+        </symbol>
+
+        <!-- icon-logout 退出 -->
+        <symbol id="icon-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+        </symbol>
+
+        <!-- icon-plus 新增 -->
+        <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+        </symbol>
+
+        <!-- icon-edit 编辑 -->
+        <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </symbol>
+
+        <!-- icon-delete 删除 -->
+        <symbol id="icon-delete" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            <line x1="10" y1="11" x2="10" y2="17"/>
+            <line x1="14" y1="11" x2="14" y2="17"/>
+        </symbol>
+
+        <!-- icon-warning 警告/感叹号 -->
+        <symbol id="icon-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </symbol>
+
+        <!-- icon-check 对勾 -->
+        <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+        </symbol>
+
+        <!-- icon-close 关闭 -->
+        <symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+        </symbol>
+
+        <!-- icon-chevron-left 左箭头 -->
+        <symbol id="icon-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+        </symbol>
+
+        <!-- icon-chevron-right 右箭头 -->
+        <symbol id="icon-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+        </symbol>
+
+        <!-- icon-calendar 日历 -->
+        <symbol id="icon-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+        </symbol>
+
+        <!-- icon-list 列表 -->
+        <symbol id="icon-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <circle cx="4" cy="6" r="1" fill="currentColor"/>
+            <circle cx="4" cy="12" r="1" fill="currentColor"/>
+            <circle cx="4" cy="18" r="1" fill="currentColor"/>
+        </symbol>
+
+        <!-- icon-lock 锁（登录用） -->
+        <symbol id="icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </symbol>
+
+        <!-- icon-leaf 叶子/植物（logo用） -->
+        <symbol id="icon-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/>
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+        </symbol>
+
+        <!-- icon-info 信息/提示 -->
+        <symbol id="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </symbol>
+
+        <!-- icon-bowtie 领结（主 Logo） -->
+        <symbol id="icon-bowtie" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 7l8 5-8 5V7z"/>
+            <path d="M20 7l-8 5 8 5V7z"/>
+            <rect x="10" y="10" width="4" height="4" rx="0.5"/>
+        </symbol>
+
+        <!-- icon-suit 西装/夹克 -->
+        <symbol id="icon-suit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6l4-2h8l4 2-2 14H6L4 6z"/>
+            <path d="M8 4l4 4 4-4"/>
+            <path d="M12 8v12"/>
+            <path d="M8 10l1 2"/>
+            <path d="M16 10l-1 2"/>
+        </symbol>
+
+        <!-- icon-hat 礼帽/绅士帽 -->
+        <symbol id="icon-hat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 19h18"/>
+            <path d="M6 19v-6a6 6 0 0 1 12 0v6"/>
+            <path d="M6 14h12"/>
+        </symbol>
+
+        <!-- icon-heart 爱心 -->
+        <symbol id="icon-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </symbol>
+
+        <!-- icon-star 星星 -->
+        <symbol id="icon-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </symbol>
+
+        <!-- icon-coffee 咖啡 -->
+        <symbol id="icon-coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 8h1a4 4 0 0 1 0 8h-1"/>
+            <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/>
+            <path d="M6 2v2"/>
+            <path d="M10 2v2"/>
+            <path d="M14 2v2"/>
+        </symbol>
+
+        <!-- icon-fox 狐狸脸（主 Logo） -->
+        <symbol id="icon-fox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 左耳 -->
+            <path d="M5 5l3 5"/>
+            <path d="M6.5 3.5l1.5 6.5"/>
+            <!-- 右耳 -->
+            <path d="M19 5l-3 5"/>
+            <path d="M17.5 3.5l-1.5 6.5"/>
+            <!-- 脸部轮廓 -->
+            <path d="M6 10c0-3 2.5-5 6-5s6 2 6 5"/>
+            <path d="M4 11c0 4 3.5 7 8 7s8-3 8-7"/>
+            <!-- 鼻子/嘴部尖形 -->
+            <path d="M12 14l-2 3h4l-2-3z"/>
+            <!-- 眼睛 -->
+            <circle cx="9.5" cy="10.5" r="0.8" fill="currentColor"/>
+            <circle cx="14.5" cy="10.5" r="0.8" fill="currentColor"/>
+        </symbol>
+
+        <!-- icon-logo-n 狐狸头 Logo（线条版）：狐狸头 + 口鼻部为字母 n -->
+        <symbol id="icon-logo-n" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 左耳（尖三角，外倾） -->
+            <path d="M4 9L3 3L9.5 7"/>
+            <!-- 右耳（尖三角，外倾） -->
+            <path d="M20 9L21 3L14.5 7"/>
+            <!-- 脸部轮廓（上宽下窄的狐狸脸） -->
+            <path d="M5 10c0-3 14-3 14 0v2c0 4-7 9-7 9s-7-5-7-9v-2z"/>
+            <!-- 左耳内耳（橙色填充） -->
+            <path d="M5.2 7.8L4.5 4.5L8.5 7z" fill="#ea580c" stroke="none"/>
+            <!-- 右耳内耳（橙色填充） -->
+            <path d="M18.8 7.8L19.5 4.5L15.5 7z" fill="#ea580c" stroke="none"/>
+            <!-- 眼睛（左） -->
+            <circle cx="9" cy="11" r="0.8" fill="currentColor" stroke="none"/>
+            <!-- 眼睛（右） -->
+            <circle cx="15" cy="11" r="0.8" fill="currentColor" stroke="none"/>
+            <!-- 口鼻部 = 字母 n（融合设计） -->
+            <path d="M9.5 14.5v-2.5c0-1.2 5-1.2 5 0v2.5" stroke-width="2"/>
+            <!-- 鼻子小三角 -->
+            <path d="M11 15.5h2l-1 1.5z" fill="currentColor" stroke="none"/>
+        </symbol>
+
+        <!-- icon-logo-n-fill 狐狸头 Logo（填充版，用于深色背景） -->
+        <symbol id="icon-logo-n-fill" viewBox="0 0 24 24">
+            <!-- 底层黑描边（整体狐狸头） -->
+            <path d="M3 9.5L1.8 2.5L10 6.5c1.3-.5 2.7-.5 4 0l8.2-4L21 9.5v2c0 4.5-7.5 10-9 10s-9-5.5-9-10v-2z" fill="#1a1a1a"/>
+            <!-- 狐狸脸部（橙色填充，主色） -->
+            <path d="M4 9.5c0-2.5 16-2.5 16 0v2c0 4-7 9-8 9s-8-5-8-9v-2z" fill="currentColor"/>
+            <!-- 左耳（橙色，与脸部同色，黑边已由底层提供） -->
+            <path d="M3.8 8.5L3 3.5L9.5 7L6 8.8z" fill="currentColor"/>
+            <!-- 右耳 -->
+            <path d="M20.2 8.5L21 3.5L14.5 7L18 8.8z" fill="currentColor"/>
+            <!-- 左耳内耳（深橙） -->
+            <path d="M5 7.5L4.5 5L8 6.5z" fill="#ea580c"/>
+            <!-- 右耳内耳（深橙） -->
+            <path d="M19 7.5L19.5 5L16 6.5z" fill="#ea580c"/>
+            <!-- 脸部白色区域（口鼻 + 脸颊下方） -->
+            <path d="M7 12.5c0 3 2.5 5.5 5 5.5s5-2.5 5-5.5c0-2-2-3-5-3s-5 1-5 3z" fill="#fff"/>
+            <!-- 眼睛（左，黑色） -->
+            <circle cx="9" cy="10.5" r="1" fill="#1a1a1a"/>
+            <!-- 眼睛（右，黑色） -->
+            <circle cx="15" cy="10.5" r="1" fill="#1a1a1a"/>
+            <!-- 口鼻部字母 n（橙色线条，在白色口鼻上） -->
+            <path d="M9.5 14.5v-2.5c0-1.2 5-1.2 5 0v2.5" stroke="#ea580c" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- 鼻子（黑色小三角） -->
+            <path d="M10.8 15.8h2.4l-1.2 1.6z" fill="#1a1a1a"/>
+        </symbol>
+
+        <!-- 方案A：极简 n + 单耳（线条版） -->
+        <symbol id="icon-logo-a" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 字母 n -->
+            <path d="M5 19V8c0-2.5 14-2.5 14 0v11"/>
+            <!-- 左耳尖（从n左竖顶部冒出的小三角） -->
+            <path d="M5 8L4.5 3.5L7.5 8" stroke-width="2"/>
+            <!-- 内耳（橙色填充） -->
+            <path d="M5.2 7.5L5 5L7 7.5z" fill="#ea580c" stroke="none"/>
+        </symbol>
+
+        <!-- 方案A：极简 n + 单耳（填充版，橙底白字） -->
+        <symbol id="icon-logo-a-fill" viewBox="0 0 24 24" fill="currentColor">
+            <!-- 字母 n（实心） -->
+            <path d="M4.5 19.5V8c0-3 15-3 15 0v11.5h-2.8V8.8c0-1.8-9.4-1.8-9.4 0v10.7H4.5z"/>
+            <!-- 左耳尖（实心三角） -->
+            <path d="M4 8L3.5 3L7.5 8z"/>
+            <!-- 内耳（深橙） -->
+            <path d="M4.4 7.5L4.2 4.8L6.5 7.5z" fill="#ea580c"/>
+        </symbol>
+
+        <!-- 方案B：n + 尾巴曲线（线条版） -->
+        <symbol id="icon-logo-b" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 字母 n -->
+            <path d="M5 16V7c0-2.5 12-2.5 12 0v7"/>
+            <!-- 尾巴（从n右下角延伸出的优雅曲线） -->
+            <path d="M17 14c0 2.5-2.5 4.5-5.5 4.5S6.5 16.5 6.5 14c0-1 .5-1.8 1.5-2.3" stroke-width="2"/>
+            <!-- 尾巴尖（小三角内耳暗示） -->
+            <path d="M8 11.7L7.2 10.5L9 11.2" fill="#ea580c" stroke="none"/>
+        </symbol>
+
+        <!-- 方案B：n + 尾巴曲线（填充版） -->
+        <symbol id="icon-logo-b-fill" viewBox="0 0 24 24" fill="currentColor">
+            <!-- 字母 n（实心） -->
+            <path d="M4.5 16.5V7.5c0-2.8 13-2.8 13 0v7h-2.5V8.2c0-1.6-8-1.6-8 0v8.3h-2.5z"/>
+            <!-- 尾巴（实心渐变条带） -->
+            <path d="M16.5 14c0 2.8-2.8 5-6 5s-6-2.2-6-5c0-1.2.8-2.2 2-2.8v-1c-2.5.6-4 2.3-4 3.8 0 3.5 3.5 6 8 6s8-2.5 8-6c0-1.5-.8-2.8-2-3.7v1c1 .6 1.5 1.4 1.5 2.7z"/>
+            <!-- 尾巴尖内侧（深橙） -->
+            <path d="M7 11L6 9.5L8.5 10.5z" fill="#ea580c"/>
+        </symbol>
+
+        <!-- 方案C：负空间圆徽章（线条+填充） -->
+        <symbol id="icon-logo-c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 圆形徽章外框 -->
+            <circle cx="12" cy="12" r="10"/>
+            <!-- 内部橙色块（用负空间同时形成n和双耳） -->
+            <path d="M7 16V9c0-2 10-2 10 0v7M7 9c0 0-1-3 2-4.5M17 9c0 0 1-3-2-4.5" fill="none" stroke-width="2"/>
+        </symbol>
+
+        <!-- 方案C：负空间圆徽章（填充版，橙底白负空间） -->
+        <symbol id="icon-logo-c-fill" viewBox="0 0 24 24" fill="currentColor">
+            <!-- 圆形橙色底 -->
+            <circle cx="12" cy="12" r="10.5" fill="currentColor"/>
+            <!-- 负空间：n + 双耳（白色透出来） -->
+            <path d="M7 16V9c0-2.2 10-2.2 10 0v7h-1.5V9.5c0-1.3-7-1.3-7 0V16H7zM7.5 8.5c0 0-.8-2.8 2.5-4.2l.5 1.2c-2 1-2.8 2.8-3 3zM16.5 8.5c0 0 .8-2.8-2.5-4.2l-.5 1.2c2 1 2.8 2.8 3 3z" fill="#fff"/>
+        </symbol>
+
+        <!-- icon-logo 正式 Logo：两个交错的圆弧组成 S 形，代表循环有序 -->
+        <symbol id="icon-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 上弧：S 形上半段，从左向右下延伸 -->
+            <path d="M5 7c4 0 5 3 7 5"/>
+            <!-- 下弧：S 形下半段，与上弧交错，从左向右下延伸 -->
+            <path d="M12 12c2 2 3 5 7 5"/>
+        </symbol>
+
+        <!-- icon-logo-fill 正式 Logo（填充版，用于深色背景） -->
+        <symbol id="icon-logo-fill" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 5.5C4 4 5.5 3 7 4c2.5 2 2 5 5 7s5 4 8 2c1.5-1 2.5.5 1.5 2-2.5 2.5-5.5 3-8.5.5S2.5 8 4 5.5z"/>
+        </symbol>
+
+        <!-- icon-badge 警徽/徽章 -->
+        <symbol id="icon-badge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 五角星徽章 -->
+            <polygon points="12 3 14.5 8.5 20.5 9 16 13 17.5 19 12 16 6.5 19 8 13 3.5 9 9.5 8.5"/>
+            <!-- 中心小圆 -->
+            <circle cx="12" cy="12.5" r="1.5"/>
+        </symbol>
+
+        <!-- icon-sunglasses 墨镜 -->
+        <symbol id="icon-sunglasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 左镜片 -->
+            <path d="M3 13c0-2 1.5-3 3.5-3s3.5 1 3.5 3v1c0 2-1.5 3-3.5 3S3 16 3 14v-1z"/>
+            <!-- 右镜片 -->
+            <path d="M14 13c0-2 1.5-3 3.5-3s3.5 1 3.5 3v1c0 2-1.5 3-3.5 3s-3.5-1-3.5-3v-1z"/>
+            <!-- 鼻梁架 -->
+            <path d="M10 13h4"/>
+            <!-- 镜腿 -->
+            <path d="M6.5 10l-2-4"/>
+            <path d="M17.5 10l2-4"/>
+        </symbol>
+
+        <!-- icon-tie 领带 -->
+        <symbol id="icon-tie" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 领带结 -->
+            <path d="M10 4h4v2l-1 1v1h-2V7l-1-1V4z"/>
+            <!-- 领带主体 -->
+            <path d="M11 8l-1.5 4 2.5 7 2.5-7L13 8z"/>
+        </symbol>
+
+        <!-- icon-flash 闪电/快速 -->
+        <symbol id="icon-flash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 4 14 11 14 10 22 20 10 13 10"/>
+        </symbol>
+
+        <!-- icon-gift 礼物 -->
+        <symbol id="icon-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 盒子主体 -->
+            <rect x="3" y="9" width="18" height="12" rx="1"/>
+            <!-- 盒盖 -->
+            <rect x="3" y="7" width="18" height="3" rx="0.5"/>
+            <!-- 竖丝带 -->
+            <line x1="12" y1="7" x2="12" y2="21"/>
+            <!-- 横丝带 -->
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <!-- 蝴蝶结左 -->
+            <path d="M12 7c-2-2-4-1-4 1s2 2 4 1"/>
+            <!-- 蝴蝶结右 -->
+            <path d="M12 7c2-2 4-1 4 1s-2 2-4 1"/>
+        </symbol>
+
+        <!-- icon-house 家/生活用品（房子 + 盒子） -->
+        <symbol id="icon-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <rect x="8" y="12" width="8" height="6" rx="1"/>
+            <line x1="12" y1="12" x2="12" y2="18"/>
+        </symbol>
+
+        <!-- icon-pie 饼图 -->
+        <symbol id="icon-pie" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+            <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+        </symbol>
+    </svg>
+
+    <!-- ===== 认证页面（未登录时显示） ===== -->
+    <div id="auth-page" class="auth-container">
+        <!-- 装饰性浮动气泡 -->
+        <div class="deco-bubble bubble-1"></div>
+        <div class="deco-bubble bubble-2"></div>
+        <div class="deco-bubble bubble-3"></div>
+        <div class="deco-bubble bubble-4"></div>
+
+        <div class="auth-card">
+            <!-- 品牌区：Logo + 产品名 + Slogan -->
+            <div class="auth-brand">
+                <div class="auth-logo">
+                    <svg class="auth-logo__icon"><use href="#icon-logo-fill"/></svg>
+                </div>
+                <h1 class="auth-title">随序</h1>
+                <p class="auth-slogan">随心有序</p>
+            </div>
+
+            <!-- 核心价值点 -->
+            <div class="auth-values">
+                <div class="auth-value-item">
+                    <div class="auth-value__icon">
+                        <svg><use href="#icon-warning"/></svg>
+                    </div>
+                    <div class="auth-value__text">
+                        <div class="auth-value__title">管好所有保质期</div>
+                        <div class="auth-value__desc">护肤品 / 食材 / 生活用品，临期提醒不浪费</div>
+                    </div>
+                </div>
+                <div class="auth-value-item">
+                    <div class="auth-value__icon">
+                        <svg><use href="#icon-heart"/></svg>
+                    </div>
+                    <div class="auth-value__text">
+                        <div class="auth-value__title">健康随手记</div>
+                        <div class="auth-value__desc">体重、血糖、经期，一目了然</div>
+                    </div>
+                </div>
+                <div class="auth-value-item">
+                    <div class="auth-value__icon">
+                        <svg><use href="#icon-pie"/></svg>
+                    </div>
+                    <div class="auth-value__text">
+                        <div class="auth-value__title">生活可视化</div>
+                        <div class="auth-value__desc">一个看板，掌握全部生活状态</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 切换 -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">登录</button>
+                <button class="auth-tab" data-tab="register">注册</button>
+            </div>
+
+            <!-- 登录表单 -->
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon"><use href="#icon-user"/></svg>
+                        <input type="text" id="login-username" placeholder="请输入用户名" autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon"><use href="#icon-lock"/></svg>
+                        <input type="password" id="login-password" placeholder="请输入密码" autocomplete="current-password">
+                    </div>
+                </div>
+                <div id="login-error" class="auth-error"></div>
+                <button type="submit" class="btn btn-primary btn-block">登录</button>
+            </form>
+
+            <!-- 注册表单 -->
+            <form id="register-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon"><use href="#icon-user"/></svg>
+                        <input type="text" id="register-username" placeholder="3-20位字符" autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon"><use href="#icon-lock"/></svg>
+                        <input type="password" id="register-password" placeholder="至少6位" autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon"><use href="#icon-lock"/></svg>
+                        <input type="password" id="register-password2" placeholder="再次输入密码" autocomplete="new-password">
+                    </div>
+                </div>
+                <div id="register-error" class="auth-error"></div>
+                <button type="submit" class="btn btn-primary btn-block">注册</button>
+            </form>
+
+            <!-- 演示账号提示 -->
+            <div class="auth-demo-tip">
+                <svg class="auth-demo-tip__icon"><use href="#icon-info"/></svg>
+                <span>想先体验？用演示账号 → <strong>demo</strong> / <strong>demo123456</strong></span>
+            </div>
+
+            <!-- 底部标注 -->
+            <div class="auth-footer-note">
+                参赛演示版本
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 应用主页面（登录后显示） ===== -->
+    <div id="app-page" class="app-container hidden">
+
+        <!-- 左侧边栏 -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <svg class="nav-brand__icon"><use href="#icon-logo"/></svg>
+                <span class="nav-brand__text">随序</span>
+            </div>
+
+            <button id="nav-toggle" class="nav-toggle" aria-label="菜单">
+                <svg class="nav-toggle__icon"><use href="#icon-list"/></svg>
+            </button>
+
+            <div class="nav-menu">
+                <button class="nav-item active" data-module="dashboard">
+                    <svg class="nav-item__icon"><use href="#icon-home"/></svg>
+                    <span>看板</span>
+                </button>
+                <div class="nav-divider"></div>
+                <div class="nav-group-label">物品管理</div>
+                <button class="nav-item" data-module="skincare">
+                    <svg class="nav-item__icon"><use href="#icon-skincare"/></svg>
+                    <span>护肤品</span>
+                </button>
+                <button class="nav-item" data-module="fridge">
+                    <svg class="nav-item__icon"><use href="#icon-fridge"/></svg>
+                    <span>冰箱食材</span>
+                </button>
+                <button class="nav-item" data-module="household">
+                    <svg class="nav-item__icon"><use href="#icon-house"/></svg>
+                    <span>生活用品</span>
+                </button>
+                <div class="nav-divider"></div>
+                <div class="nav-group-label">记录</div>
+                <button class="nav-item" data-module="diary">
+                    <svg class="nav-item__icon"><use href="#icon-diary"/></svg>
+                    <span>日常日志</span>
+                </button>
+                <button class="nav-item" data-module="health">
+                    <svg class="nav-item__icon"><use href="#icon-heart"/></svg>
+                    <span>健康管理</span>
+                </button>
+            </div>
+
+            <div class="nav-sidebar-footer">
+                <div class="nav-user">
+                    <div class="nav-user__avatar">
+                        <svg class="nav-user__icon"><use href="#icon-user"/></svg>
+                    </div>
+                    <div class="nav-user__info">
+                        <span id="nav-username" class="nav-user__name"></span>
+                    </div>
+                    <button id="btn-logout" class="btn-logout">
+                        <svg class="btn-logout__icon"><use href="#icon-logout"/></svg>
+                    </button>
+                </div>
+                <div class="nav-brand-bottom">
+                    <div class="nav-brand-bottom__name">随序</div>
+                    <div class="nav-brand-bottom__slogan">随心有序</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+
+            <!-- 总看板模块 -->
+            <section id="module-dashboard" class="module">
+                <!-- 产品定位头部 -->
+                <div class="dashboard-header">
+                    <div class="dashboard-header__left">
+                        <div class="dashboard-header__brand">随序 · 生活总览</div>
+                        <div class="dashboard-header__subtitle">你的生活总览，重要事项一目了然</div>
+                    </div>
+                    <div class="dashboard-header__right">
+                        <div id="dashboard-today-date" class="dashboard-header__date"></div>
+                    </div>
+                </div>
+
+                <!-- 示例数据横幅 -->
+                <div id="demo-seed-banner" class="demo-banner" style="display:none;">
+                    <span class="demo-banner__text">还没有数据？一键导入示例数据，体验完整功能 →</span>
+                    <button id="demo-seed-btn" class="demo-banner__btn">导入示例</button>
+                </div>
+
+                <!-- 看板内容由 JS 动态渲染 -->
+                <div id="dashboard-content"></div>
+            </section>
+
+            <!-- 护肤品模块 -->
+            <section id="module-skincare" class="module hidden">
+                <div class="module-header">
+                    <div class="module-header__left">
+                        <h2 class="module-title">
+                            <svg class="module-title__icon"><use href="#icon-skincare"/></svg>
+                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
+                            护肤品管理
+                        </h2>
+                        <p class="page-subtitle">记录你的护肤品库存，临期自动提醒</p>
+                    </div>
+                    <button id="btn-add-skincare" class="btn btn-primary">
+                        <svg class="btn__icon"><use href="#icon-plus"/></svg>
+                        添加
+                    </button>
+                </div>
+
+                <!-- 快速添加 -->
+                <div class="quick-add">
+                    <div class="quick-add__label">
+                        <svg class="quick-add__icon"><use href="#icon-flash"/></svg>
+                        快速添加
+                    </div>
+                    <div id="skincare-quick-tags" class="quick-tags"></div>
+                </div>
+
+                <!-- 统计卡片 -->
+                <div id="skincare-stats" class="skincare-stats"></div>
+
+                <!-- Tab 切换 + 搜索 -->
+                <div class="skincare-tab-bar">
+                    <div class="skincare-tabs">
+                        <button class="skincare-tab active" data-tab="active">在库护肤品</button>
+                        <button class="skincare-tab" data-tab="archive">历史归档</button>
+                    </div>
+                    <div class="skincare-search-wrapper">
+                        <input type="text" id="skincare-search" placeholder="搜索护肤品..." class="skincare-search-input">
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <div id="skincare-filter" class="filter-category-container"></div>
+                </div>
+
+                <div id="skincare-list" class="item-list">
+                    <div class="empty-tip">
+                        <div class="empty-tip__icon empty-tip__icon--skincare">
+                            <svg><use href="#icon-skincare"/></svg>
+                        </div>
+                        <p class="empty-tip__text">化妆台空空如也 🧴</p>
+                        <p class="empty-tip__sub">帮你记录每一件护肤品</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 冰箱食材模块 -->
+            <section id="module-fridge" class="module hidden">
+                <div class="module-header">
+                    <div class="module-header__left">
+                        <h2 class="module-title">
+                            <svg class="module-title__icon"><use href="#icon-fridge"/></svg>
+                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
+                            冰箱食材
+                        </h2>
+                        <p class="page-subtitle">管理食材和保质期，减少浪费</p>
+                    </div>
+                    <button id="btn-add-fridge" class="btn btn-primary">
+                        <svg class="btn__icon"><use href="#icon-plus"/></svg>
+                        添加
+                    </button>
+                </div>
+
+                <!-- 快速添加 -->
+                <div class="quick-add">
+                    <div class="quick-add__label">
+                        <svg class="quick-add__icon"><use href="#icon-flash"/></svg>
+                        快速添加
+                    </div>
+                    <div id="fridge-quick-tags" class="quick-tags"></div>
+                </div>
+
+                <!-- 统计卡片 -->
+                <div id="fridge-stats" class="fridge-stats"></div>
+
+                <!-- Tab 切换 + 搜索 -->
+                <div class="fridge-tab-bar">
+                    <div class="fridge-tabs">
+                        <button class="fridge-tab active" data-tab="active">在库食材</button>
+                        <button class="fridge-tab" data-tab="archive">历史归档</button>
+                    </div>
+                    <div class="fridge-search-wrapper">
+                        <input type="text" id="fridge-search" placeholder="搜索食材..." class="fridge-search-input">
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <div id="fridge-category-filter" class="filter-category-container"></div>
+                    <select id="fridge-filter">
+                        <option value="all">全部位置</option>
+                        <option value="冷藏">冷藏</option>
+                        <option value="冷冻">冷冻</option>
+                        <option value="保鲜">保鲜</option>
+                        <option value="门架">门架</option>
+                    </select>
+                </div>
+
+                <div id="fridge-list" class="item-list">
+                    <div class="empty-tip">
+                        <div class="empty-tip__icon empty-tip__icon--fridge">
+                            <svg><use href="#icon-fridge"/></svg>
+                        </div>
+                        <p class="empty-tip__text">冰箱有点空哦 🥕</p>
+                        <p class="empty-tip__sub">帮你管好冰箱，减少浪费</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 生活用品模块 -->
+            <section id="module-household" class="module hidden">
+                <div class="module-header">
+                    <div class="module-header__left">
+                        <h2 class="module-title">
+                            <svg class="module-title__icon"><use href="#icon-house"/></svg>
+                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
+                            生活用品
+                        </h2>
+                        <p class="page-subtitle">家居日用品库存管理，用完再买</p>
+                    </div>
+                    <button id="btn-add-household" class="btn btn-primary">
+                        <svg class="btn__icon"><use href="#icon-plus"/></svg>
+                        添加
+                    </button>
+                </div>
+
+                <!-- 快速添加 -->
+                <div class="quick-add">
+                    <div class="quick-add__label">
+                        <svg class="quick-add__icon"><use href="#icon-flash"/></svg>
+                        快速添加
+                    </div>
+                    <div id="household-quick-tags" class="quick-tags"></div>
+                </div>
+
+                <div class="filter-bar">
+                    <div id="household-category-filter" class="filter-category-container"></div>
+                    <select id="household-location-filter">
+                        <option value="all">全部位置</option>
+                        <option value="卫生间">卫生间</option>
+                        <option value="厨房">厨房</option>
+                        <option value="阳台">阳台</option>
+                        <option value="储物柜">储物柜</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+
+                <div id="household-list" class="item-list">
+                    <div class="empty-tip">
+                        <div class="empty-tip__icon empty-tip__icon--household">
+                            <svg><use href="#icon-house"/></svg>
+                        </div>
+                        <p class="empty-tip__text">储物柜空空如也 🏠</p>
+                        <p class="empty-tip__sub">帮你管理家中日用品库存</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 日常日志模块 -->
+            <section id="module-diary" class="module hidden">
+                <div class="module-header">
+                    <div class="module-header__left">
+                        <h2 class="module-title">
+                            <svg class="module-title__icon"><use href="#icon-diary"/></svg>
+                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
+                            日常日志
+                        </h2>
+                        <p class="page-subtitle">随手记录每日生活和心情</p>
+                    </div>
+                    <button id="btn-add-diary" class="btn btn-primary">
+                        <svg class="btn__icon"><use href="#icon-plus"/></svg>
+                        写点什么
+                    </button>
+                </div>
+
+                <!-- 视图切换 -->
+                <div class="diary-view-toggle">
+                    <button class="view-btn active" data-view="list">
+                        <svg class="view-btn__icon"><use href="#icon-list"/></svg>
+                        列表
+                    </button>
+                    <button class="view-btn" data-view="calendar">
+                        <svg class="view-btn__icon"><use href="#icon-calendar"/></svg>
+                        日历
+                    </button>
+                </div>
+
+                <!-- 列表视图 -->
+                <div id="diary-list-view" class="diary-list">
+                    <div class="empty-tip">
+                        <div class="empty-tip__icon empty-tip__icon--diary">
+                            <svg><use href="#icon-diary"/></svg>
+                        </div>
+                        <p class="empty-tip__text">今天发生了什么？📔</p>
+                        <p class="empty-tip__sub">记录每天的心情与故事</p>
+                    </div>
+                </div>
+
+                <!-- 日历视图 -->
+                <div id="diary-calendar-view" class="diary-calendar hidden">
+                    <div class="calendar-header">
+                        <button id="cal-prev" class="cal-nav" aria-label="上一月">
+                            <svg><use href="#icon-chevron-left"/></svg>
+                        </button>
+                        <span id="cal-title"></span>
+                        <button id="cal-next" class="cal-nav" aria-label="下一月">
+                            <svg><use href="#icon-chevron-right"/></svg>
+                        </button>
+                    </div>
+                    <div id="calendar-grid" class="calendar-grid"></div>
+                </div>
+            </section>
+
+            <!-- 健康管理模块 -->
+            <section id="module-health" class="module hidden">
+                <div class="module-header">
+                    <div class="module-header__left">
+                        <h2 class="module-title">
+                            <svg class="module-title__icon"><use href="#icon-heart"/></svg>
+                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
+                            健康管理
+                        </h2>
+                        <p class="page-subtitle">体重、血糖、经期，一目了然</p>
+                    </div>
+                    <button id="btn-save-health" class="btn btn-primary">
+                        <svg class="btn__icon"><use href="#icon-plus"/></svg>
+                        保存记录
+                    </button>
+                </div>
+
+                <div class="health-layout">
+                    <!-- 左侧：记录表单 -->
+                    <div class="health-form-section section-card">
+                        <h3 class="section-title">
+                            <svg class="section-title__icon"><use href="#icon-edit"/></svg>
+                            <svg class="section-title__deco"><use href="#icon-badge"/></svg>
+                            今日记录
+                        </h3>
+                        <form id="health-form" class="health-form">
+                            <input type="hidden" id="health-id">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>记录日期</label>
+                                    <input type="date" id="health-date">
+                                </div>
+                                <div class="form-group">
+                                    <label>天气</label>
+                                    <select id="health-weather">
+                                        <option value="晴">晴</option>
+                                        <option value="多云">多云</option>
+                                        <option value="阴">阴</option>
+                                        <option value="雨">雨</option>
+                                        <option value="雪">雪</option>
+                                        <option value="雾">雾</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>体感舒适度</label>
+                                    <select id="health-comfort">
+                                        <option value="舒适">舒适</option>
+                                        <option value="一般">一般</option>
+                                        <option value="疲惫">疲惫</option>
+                                        <option value="不适">不适</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>当日体重（斤）</label>
+                                    <input type="number" id="health-weight" step="0.1" placeholder="请输入体重">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>空腹血糖</label>
+                                    <input type="number" id="health-fasting-glucose" step="0.1" placeholder="mmol/L">
+                                </div>
+                                <div class="form-group">
+                                    <label>餐后2h血糖</label>
+                                    <input type="number" id="health-postprandial-glucose" step="0.1" placeholder="mmol/L">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>月经周期状态</label>
+                                    <select id="health-menstrual-status">
+                                        <option value="非经期">非经期</option>
+                                        <option value="月经第1天">月经第1天</option>
+                                        <option value="月经第2天">月经第2天</option>
+                                        <option value="月经第3天">月经第3天</option>
+                                        <option value="月经第4天">月经第4天</option>
+                                        <option value="月经第5天">月经第5天</option>
+                                        <option value="月经第6天">月经第6天</option>
+                                        <option value="月经第7天">月经第7天</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>心情日志</label>
+                                <div class="textarea-with-mic">
+                                    <textarea id="health-mood-log" rows="4" placeholder="记录今天的心情和感受..."></textarea>
+                                    <button type="button" class="mic-btn" onclick="VoiceRecognition.start('health-mood-log', 'health')" title="语音输入">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 右侧：日历视图 -->
+                    <div class="health-calendar-section section-card">
+                        <h3 class="section-title">
+                            <svg class="section-title__icon"><use href="#icon-calendar"/></svg>
+                            <svg class="section-title__deco"><use href="#icon-badge"/></svg>
+                            日历视图
+                        </h3>
+                        <div class="health-calendar">
+                            <div class="calendar-header">
+                                <button id="health-cal-prev" class="cal-nav" aria-label="上一月">
+                                    <svg><use href="#icon-chevron-left"/></svg>
+                                </button>
+                                <span id="health-cal-title"></span>
+                                <button id="health-cal-next" class="cal-nav" aria-label="下一月">
+                                    <svg><use href="#icon-chevron-right"/></svg>
+                                </button>
+                            </div>
+                            <div class="cal-legend">
+                                <span class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--record"></span>有记录</span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--menstrual"></span>经期</span>
+                            </div>
+                            <div id="health-calendar-grid" class="cal-grid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 历史查询区 -->
+                <div class="section-card health-history-section">
+                    <h3 class="section-title">
+                        <svg class="section-title__icon"><use href="#icon-list"/></svg>
+                        <svg class="section-title__deco"><use href="#icon-badge"/></svg>
+                        历史记录
+                    </h3>
+                    <div class="health-query-bar">
+                        <div class="form-group">
+                            <label>开始日期</label>
+                            <input type="date" id="health-start-date">
+                        </div>
+                        <div class="form-group">
+                            <label>结束日期</label>
+                            <input type="date" id="health-end-date">
+                        </div>
+                        <button id="btn-query-health" class="btn btn-primary">
+                            <svg class="btn__icon"><use href="#icon-list"/></svg>
+                            查询
+                        </button>
+                    </div>
+                    <div id="health-history-list" class="health-history-list">
+                        <div class="empty-tip">
+                            <div class="empty-tip__icon">
+                                <svg><use href="#icon-heart"/></svg>
+                            </div>
+                            <p class="empty-tip__text">暂无健康记录</p>
+                            <p class="empty-tip__sub">记录每一天的健康状态</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 底部 -->
+            <footer class="app-footer">
+                参赛演示版本 · 非商用 · 测试数据仅供体验<br>随序 · 随心有序
+            </footer>
+        </main>
+    </div>
+
+    <!-- ===== Toast 提示 ===== -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- ===== Modal 弹窗 ===== -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title"></h3>
+                <button id="modal-close" class="modal-close" aria-label="关闭">
+                    <svg><use href="#icon-close"/></svg>
+                </button>
+            </div>
+            <div id="modal-body" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- 新手任务卡片 -->
+    <div id="onboarding-card" class="onboarding-card" style="display:none;">
+        <div class="onboarding-header">
+            <span class="onboarding-title">新手任务</span>
+            <span class="onboarding-close" onclick="Onboarding.dismiss()">×</span>
+        </div>
+        <div class="onboarding-progress">
+            <div class="onboarding-progress-bar"><div id="onboarding-progress-fill"></div></div>
+            <span id="onboarding-progress-text">0/4</span>
+        </div>
+        <div id="onboarding-tasks" class="onboarding-tasks"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
