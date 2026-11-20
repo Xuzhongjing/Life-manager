@@ -1833,6 +1833,7 @@ svg {
     border: 1px solid var(--border-color);
     transition: all 0.3s ease;
     box-shadow: var(--shadow-sm);
+    cursor: pointer;
 }
 
 .item-card:hover {

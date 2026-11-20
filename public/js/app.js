@@ -2324,26 +2324,26 @@ const Skincare = {
             let actionButtons = '';
             if (this.currentTab === 'archive') {
                 actionButtons = `
-                    <button class="btn btn-secondary btn-sm" onclick="Skincare.toggleArchive('${item.id}')">
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();Skincare.toggleArchive('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-check"/></svg>恢复
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="Skincare.confirmDelete('${item.id}')">
+                    <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();Skincare.confirmDelete('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-delete"/></svg>删除
                     </button>
                 `;
             } else {
                 actionButtons = `
-                    <button class="btn btn-secondary btn-sm" onclick="Skincare.showForm('${item.id}')">
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();Skincare.showForm('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-edit"/></svg>编辑
                     </button>
-                    <button class="btn btn-secondary btn-sm" onclick="Skincare.toggleArchive('${item.id}')">
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();Skincare.toggleArchive('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-list"/></svg>归档
                     </button>
                 `;
             }
 
             return `
-                <div class="item-card item-card--skincare ${cardClass}">
+                <div class="item-card item-card--skincare ${cardClass}" onclick="Skincare.showForm('${item.id}')">
                     <div class="item-card-header">
                         <div class="item-icon-circle" style="background: ${catInfo.gradient};">
                             <span class="item-icon-emoji">${catInfo.emoji}</span>
@@ -2393,7 +2393,7 @@ const Skincare = {
     },
 
     showForm(id = null, preset = null) {
-        const item = id ? this.list.find(i => i.id === id) : null;
+        const item = id ? this.list.find(i => String(i.id) === String(id)) : null;
         const title = item ? '编辑护肤品' : '新增护肤品';
 
         // 预填数据：优先编辑数据，其次是快捷预设
@@ -2957,32 +2957,32 @@ const Fridge = {
             let actionButtons = '';
             if (this.currentTab === 'archive') {
                 actionButtons = `
-                    <button class="btn btn-secondary btn-sm" onclick="Fridge.toggleArchive('${item.id}')">
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();Fridge.toggleArchive('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-check"/></svg>恢复
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="Fridge.confirmDelete('${item.id}')">
+                    <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();Fridge.confirmDelete('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-delete"/></svg>删除
                     </button>
                 `;
             } else {
                 const processedBtn = (days !== null && days < 0)
-                    ? `<button class="btn btn-secondary btn-sm" onclick="Fridge.markProcessed('${item.id}')">
+                    ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();Fridge.markProcessed('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-check"/></svg>已处理
                        </button>`
                     : '';
                 actionButtons = `
-                    <button class="btn btn-secondary btn-sm" onclick="Fridge.showForm('${item.id}')">
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();Fridge.showForm('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-edit"/></svg>编辑
                     </button>
                     ${processedBtn}
-                    <button class="btn btn-secondary btn-sm" onclick="Fridge.toggleArchive('${item.id}')">
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();Fridge.toggleArchive('${item.id}')">
                         <svg class="btn__icon"><use href="#icon-list"/></svg>归档
                     </button>
                 `;
             }
 
             return `
-                <div class="item-card item-card--fridge ${cardClass}">
+                <div class="item-card item-card--fridge ${cardClass}" onclick="Fridge.showForm('${item.id}')">
                     <div class="item-card-header">
                         <div class="item-icon-circle" style="background: ${locInfo.gradient};">
                             <span class="item-icon-emoji">${locInfo.emoji}</span>
@@ -3015,7 +3015,7 @@ const Fridge = {
     },
 
     showForm(id = null, preset = null) {
-        const item = id ? this.list.find(i => i.id === id) : null;
+        const item = id ? this.list.find(i => String(i.id) === String(id)) : null;
         const title = item ? '编辑食材' : '新增食材';
 
         // 预填数据：优先编辑数据，其次是快捷预设
@@ -3400,7 +3400,7 @@ const Household = {
             const priceText = item.price ? `¥${(item.price * (item.quantity || 1)).toFixed(2)}` : '';
 
             return `
-                <div class="item-card item-card--household ${cardClass}">
+                <div class="item-card item-card--household ${cardClass}" onclick="Household.showForm('${item.id}')">
                     <div class="item-card-header">
                         <div class="item-icon-circle" style="background: ${catInfo.gradient};">
                             <span class="item-icon-emoji">${catInfo.emoji}</span>
@@ -3432,10 +3432,10 @@ const Household = {
                     </div>
                     ${item.notes ? `<div class="item-notes">${Utils.escapeHtml(item.notes)}</div>` : ''}
                     <div class="item-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="Household.showForm('${item.id}')">
+                        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();Household.showForm('${item.id}')">
                             <svg class="btn__icon"><use href="#icon-edit"/></svg>编辑
                         </button>
-                        <button class="btn btn-danger btn-sm" onclick="Household.confirmDelete('${item.id}')">
+                        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();Household.confirmDelete('${item.id}')">
                             <svg class="btn__icon"><use href="#icon-delete"/></svg>删除
                         </button>
                     </div>
@@ -3445,7 +3445,7 @@ const Household = {
     },
 
     showForm(id = null, preset = null) {
-        const item = id ? this.list.find(i => i.id === id) : null;
+        const item = id ? this.list.find(i => String(i.id) === String(id)) : null;
         const title = item ? '编辑生活用品' : '新增生活用品';
 
         // 预填数据：优先编辑数据，其次是快捷预设
