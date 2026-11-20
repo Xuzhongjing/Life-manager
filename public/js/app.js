@@ -565,29 +565,28 @@ const API = {
 
     // 将前端 endpoint 映射为真实后端 URL
     resolveUrl(endpoint) {
+        // 分离路径和查询参数
+        const [pathPart, queryPart] = endpoint.split('?');
+        const query = queryPart ? `?${queryPart}` : '';
+
         // 先尝试完整路径匹配
-        if (this.pathMap[endpoint]) {
-            return API_BASE + this.pathMap[endpoint];
+        if (this.pathMap[pathPart]) {
+            return API_BASE + this.pathMap[pathPart] + query;
         }
 
         // 对于带 ID 的路径，如 /skincare/xxx → /api/skincare/xxx
         // 取第一段作为基准路径匹配，剩余部分追加
-        const parts = endpoint.split('/').filter(Boolean);
+        const parts = pathPart.split('/').filter(Boolean);
         if (parts.length >= 2) {
-            const firstPath = '/' + parts[0]; // 如 /skincare, /fridge
-            const remaining = parts.slice(1).join('/'); // 如 123
+            const firstPath = '/' + parts[0];
+            const remaining = parts.slice(1).join('/');
             if (this.pathMap[firstPath]) {
-                return API_BASE + this.pathMap[firstPath] + '/' + remaining;
+                return API_BASE + this.pathMap[firstPath] + '/' + remaining + query;
             }
         }
 
-        // 单段路径直接匹配
-        if (this.pathMap[endpoint]) {
-            return API_BASE + this.pathMap[endpoint];
-        }
-
         // 无映射，直接使用
-        return API_BASE + endpoint;
+        return API_BASE + pathPart + query;
     },
 
     // 通用请求方法
