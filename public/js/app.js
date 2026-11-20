@@ -2276,8 +2276,7 @@ const Skincare = {
                             <span>${metaDisplay}</span>
                         </div>
                     </div>` : ''}
-                    </div>` : ''}
-                    ${item.notes ? `<div class="item-info" style="color:var(--text-light)">${Utils.escapeHtml(item.notes)}</div>` : ''}
+                    ${item.notes ? `<div class="item-notes">${Utils.escapeHtml(item.notes)}</div>` : ''}
                     <div class="item-actions">
                         ${actionButtons}
                     </div>
