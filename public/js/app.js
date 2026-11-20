@@ -1151,6 +1151,10 @@ const Nav = {
             Dashboard.loadData();
         } else if (moduleName === 'health') {
             Health.renderCalendar();
+            // 刷新心情日志数据
+            if (typeof Diary !== 'undefined') {
+                Diary.loadData();
+            }
         }
     }
 };
@@ -1739,21 +1743,28 @@ const Dashboard = {
             ? `<div class="desk-health-note"><span>天气体感：</span>${Utils.escapeHtml((weather ? weather : '') + (weather && feeling ? ' · ' : '') + (feeling ? feeling : ''))}</div>`
             : '';
 
+        // 心情日志摘要
+        const moodNotes = latest ? (latest.moodNotes || latest.mood_notes || latest.moodLog || '') : '';
+        const moodSummary = moodNotes
+            ? `<div class="desk-health-mood"><span class="desk-health-mood__label">心情摘要：</span>${Utils.escapeHtml(moodNotes.substring(0, 40))}${moodNotes.length > 40 ? '…' : ''}</div>`
+            : '';
+
         const healthHtml = !latest
             ? `<div class="desk-empty">暂无健康记录</div>`
             : `<div class="desk-health-date">${date}</div>
                <div class="desk-health-grid">${healthItems}</div>
-               ${weatherFeeling}`;
+               ${weatherFeeling}
+               ${moodSummary}`;
 
         return `
             <div class="desk-row">
-                <div class="desk-card desk-card--secondary">
+                <div class="desk-card desk-card--secondary" data-nav="health">
                     <div class="desk-card-title">
                         <div class="desk-card-title__left">
                             <svg class="desk-card-title__icon"><use href="#icon-heart"/></svg>
                             <span>健康快照</span>
                         </div>
-                        <span class="desk-card-more desk-card-link" data-nav="health">去记录 →</span>
+                        <span class="desk-card-more desk-card-link">去记录 →</span>
                     </div>
                     ${healthHtml}
                 </div>
@@ -1795,13 +1806,13 @@ const Dashboard = {
 
         return `
             <div class="desk-row">
-                <div class="desk-card desk-card--secondary">
-                    <div class="desk-card-title" data-nav="health">
+                <div class="desk-card desk-card--secondary" data-nav="health" data-health-tab="mood">
+                    <div class="desk-card-title">
                         <div class="desk-card-title__left">
                             <svg class="desk-card-title__icon"><use href="#icon-diary"/></svg>
                             <span>最新日志</span>
                         </div>
-                        <span class="desk-card-more desk-card-link" data-nav="health">去记录 →</span>
+                        <span class="desk-card-more desk-card-link">去记录 →</span>
                     </div>
                     ${logHtml}
                 </div>
@@ -1847,13 +1858,54 @@ const Dashboard = {
         const container = document.getElementById('dashboard-content');
         if (!container) return;
 
-        // 所有带 data-nav 的元素点击跳转
+        // 所有带 data-nav 的元素点击跳转（支持 data-filter 传递筛选状态）
         container.querySelectorAll('[data-nav]').forEach(el => {
             el.style.cursor = 'pointer';
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const module = el.dataset.nav;
-                if (module) Nav.switchModule(module);
+                const filter = el.dataset.filter || null;
+                if (!module) return;
+
+                // 重置各模块的过期筛选状态
+                Skincare.expiryFilter = null;
+                Fridge.expiryFilter = null;
+
+                // 根据模块和筛选条件设置状态
+                if (filter) {
+                    if (module === 'skincare') {
+                        Skincare.expiryFilter = filter;
+                        Skincare.currentFilter = 'all';
+                    } else if (module === 'fridge') {
+                        Fridge.expiryFilter = filter;
+                        Fridge.currentCategoryFilter = 'all';
+                    }
+                } else {
+                    // 无筛选时重置分类筛选为全部
+                    if (module === 'skincare') {
+                        Skincare.currentFilter = 'all';
+                    } else if (module === 'fridge') {
+                        Fridge.currentCategoryFilter = 'all';
+                    }
+                }
+
+                // 跳转到对应模块
+                Nav.switchModule(module);
+
+                // 跳转后触发数据刷新（确保筛选生效）
+                setTimeout(() => {
+                    if (module === 'skincare') {
+                        Skincare.renderList();
+                    } else if (module === 'fridge') {
+                        Fridge.renderList();
+                    } else if (module === 'health') {
+                        // 健康模块tab切换
+                        const healthTab = el.dataset.healthTab || null;
+                        if (healthTab && typeof Health !== 'undefined') {
+                            Health.switchTab(healthTab);
+                        }
+                    }
+                }, 50);
             });
         });
 
@@ -1933,19 +1985,25 @@ const Skincare = {
     currentTab: 'active',
     searchQuery: '',
     summary: null,
+    expiryFilter: null, // 过期状态筛选：null/'expired'/'expiring30'/'expiring90'
 
     init() {
-        // 分类筛选（自定义下拉）
-        CategorySelect.renderCustomSelect(
-            'skincare-filter',
-            'skincare',
-            'all',
-            (value) => {
-                this.currentFilter = value;
-                this.renderList();
-            },
-            { showAllOption: true, allOptionLabel: '全部分类' }
-        );
+        // 分类筛选（品类卡片网格 - 工作台模式）
+        this.renderCategoryGrid();
+
+        // 绑定品类网格点击事件（事件委托）
+        const filterContainer = document.getElementById('skincare-filter');
+        if (filterContainer) {
+            filterContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.category-grid-card');
+                if (card) {
+                    const category = card.dataset.category;
+                    this.currentFilter = category;
+                    this.renderCategoryGrid();
+                    this.renderList();
+                }
+            });
+        }
 
         // 搜索框
         const searchInput = document.getElementById('skincare-search');
@@ -2076,6 +2134,41 @@ const Skincare = {
         `;
     },
 
+    // 渲染品类卡片网格（工作台模式）
+    renderCategoryGrid() {
+        const container = document.getElementById('skincare-filter');
+        if (!container) return;
+
+        // 从当前list统计各分类数量
+        const categoryCount = {};
+        let totalCount = 0;
+        this.list.forEach(item => {
+            const cat = item.category || '其他';
+            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+            totalCount++;
+        });
+
+        // 构建分类列表（按数量降序）
+        const categories = Object.keys(categoryCount).sort((a, b) => categoryCount[b] - categoryCount[a]);
+
+        // 生成卡片HTML
+        const allCard = `
+            <div class="category-grid-card ${this.currentFilter === 'all' ? 'active' : ''}" data-category="all">
+                <div class="category-grid-card__count">${totalCount}</div>
+                <div class="category-grid-card__name">全部</div>
+            </div>
+        `;
+
+        const categoryCards = categories.map(cat => `
+            <div class="category-grid-card ${this.currentFilter === cat ? 'active' : ''}" data-category="${Utils.escapeHtml(cat)}">
+                <div class="category-grid-card__count">${categoryCount[cat]}</div>
+                <div class="category-grid-card__name">${Utils.escapeHtml(cat)}</div>
+            </div>
+        `).join('');
+
+        container.innerHTML = `<div class="category-grid">${allCard}${categoryCards}</div>`;
+    },
+
     // 切换 Tab
     switchTab(tab) {
         this.currentTab = tab;
@@ -2123,8 +2216,23 @@ const Skincare = {
         const listEl = document.getElementById('skincare-list');
         let filtered = this.list;
 
+        // 更新品类卡片网格（工作台模式）
+        this.renderCategoryGrid();
+
         if (this.currentFilter !== 'all') {
             filtered = filtered.filter(item => item.category === this.currentFilter);
+        }
+
+        // 过期状态筛选（工作台跳转用）
+        if (this.expiryFilter) {
+            filtered = filtered.filter(item => {
+                const days = this.getExpiryDays(item);
+                if (days === null) return false;
+                if (this.expiryFilter === 'expired') return days < 0;
+                if (this.expiryFilter === 'expiring30') return days >= 0 && days <= 30;
+                if (this.expiryFilter === 'expiring90') return days >= 0 && days <= 90;
+                return true;
+            });
         }
 
         // 按到期时间排序
@@ -2530,19 +2638,25 @@ const Fridge = {
     currentTab: 'active',
     searchQuery: '',
     summary: null,
+    expiryFilter: null, // 过期状态筛选：null/'expired'/'expiring30'/'expiring90'/'lowStock'
 
     init() {
-        // 分类筛选（自定义下拉）
-        CategorySelect.renderCustomSelect(
-            'fridge-category-filter',
-            'food',
-            'all',
-            (value) => {
-                this.currentCategoryFilter = value;
-                this.renderList();
-            },
-            { showAllOption: true, allOptionLabel: '全部分类' }
-        );
+        // 分类筛选（品类卡片网格 - 工作台模式）
+        this.renderCategoryGrid();
+
+        // 绑定品类网格点击事件（事件委托）
+        const categoryFilter = document.getElementById('fridge-category-filter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('click', (e) => {
+                const card = e.target.closest('.category-grid-card');
+                if (card) {
+                    const category = card.dataset.category;
+                    this.currentCategoryFilter = category;
+                    this.renderCategoryGrid();
+                    this.renderList();
+                }
+            });
+        }
 
         // 位置筛选
         document.getElementById('fridge-filter').addEventListener('change', (e) => {
@@ -2665,6 +2779,41 @@ const Fridge = {
         `;
     },
 
+    // 渲染品类卡片网格（工作台模式）
+    renderCategoryGrid() {
+        const container = document.getElementById('fridge-category-filter');
+        if (!container) return;
+
+        // 从当前list统计各分类数量
+        const categoryCount = {};
+        let totalCount = 0;
+        this.list.forEach(item => {
+            const cat = item.category || '其他';
+            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+            totalCount++;
+        });
+
+        // 构建分类列表（按数量降序）
+        const categories = Object.keys(categoryCount).sort((a, b) => categoryCount[b] - categoryCount[a]);
+
+        // 生成卡片HTML
+        const allCard = `
+            <div class="category-grid-card ${this.currentCategoryFilter === 'all' ? 'active' : ''}" data-category="all">
+                <div class="category-grid-card__count">${totalCount}</div>
+                <div class="category-grid-card__name">全部</div>
+            </div>
+        `;
+
+        const categoryCards = categories.map(cat => `
+            <div class="category-grid-card ${this.currentCategoryFilter === cat ? 'active' : ''}" data-category="${Utils.escapeHtml(cat)}">
+                <div class="category-grid-card__count">${categoryCount[cat]}</div>
+                <div class="category-grid-card__name">${Utils.escapeHtml(cat)}</div>
+            </div>
+        `).join('');
+
+        container.innerHTML = `<div class="category-grid">${allCard}${categoryCards}</div>`;
+    },
+
     // 切换 Tab
     switchTab(tab) {
         this.currentTab = tab;
@@ -2712,12 +2861,30 @@ const Fridge = {
         const listEl = document.getElementById('fridge-list');
         let filtered = this.list;
 
+        // 更新品类卡片网格（工作台模式）
+        this.renderCategoryGrid();
+
         if (this.currentCategoryFilter !== 'all') {
             filtered = filtered.filter(item => item.category === this.currentCategoryFilter);
         }
 
         if (this.currentLocationFilter !== 'all') {
             filtered = filtered.filter(item => item.location === this.currentLocationFilter);
+        }
+
+        // 过期状态/库存不足筛选（工作台跳转用）
+        if (this.expiryFilter) {
+            filtered = filtered.filter(item => {
+                if (this.expiryFilter === 'lowStock') {
+                    return this.isLowStock(item);
+                }
+                const days = this.getExpiryDays(item);
+                if (days === null) return false;
+                if (this.expiryFilter === 'expired') return days < 0;
+                if (this.expiryFilter === 'expiring30') return days >= 0 && days <= 30;
+                if (this.expiryFilter === 'expiring90') return days >= 0 && days <= 90;
+                return true;
+            });
         }
 
         // 按过期时间排序
@@ -3505,6 +3672,13 @@ const Diary = {
             if (this.currentView === 'calendar') {
                 this.renderCalendar();
             }
+            // 同步刷新健康页面的心情日志视图
+            if (typeof Health !== 'undefined' && Health.currentTab === 'mood') {
+                Health.renderMoodList();
+                if (Health.moodView === 'calendar') {
+                    Health.renderMoodCalendar();
+                }
+            }
         } else {
             console.error('加载日记数据失败:', res.message);
             Toast.error('加载失败');
@@ -3783,6 +3957,13 @@ const Diary = {
             Modal.close();
             this.loadData();
             Dashboard.loadData();
+            // 同步刷新健康页面的心情日志视图
+            if (typeof Health !== 'undefined' && Health.currentTab === 'mood') {
+                Health.renderMoodList();
+                if (Health.moodView === 'calendar') {
+                    Health.renderMoodCalendar();
+                }
+            }
         } else {
             Toast.error(res.message || '保存失败');
             console.error(res.message);
@@ -3811,6 +3992,13 @@ const Diary = {
             Modal.close();
             this.loadData();
             Dashboard.loadData();
+            // 同步刷新健康页面的心情日志视图
+            if (typeof Health !== 'undefined' && Health.currentTab === 'mood') {
+                Health.renderMoodList();
+                if (Health.moodView === 'calendar') {
+                    Health.renderMoodCalendar();
+                }
+            }
         } else {
             Toast.error(res.message || '删除失败');
             console.error(res.message);
@@ -3824,12 +4012,56 @@ const Health = {
     calendarMonth: new Date(),
     records: [],
     currentRecordId: null,
+    currentTab: 'records', // 当前tab: records/mood
+    moodView: 'list', // 心情日志视图: list/calendar
+    moodMonth: new Date(), // 心情日历当前月份
 
     init() {
-        // 保存按钮
-        document.getElementById('btn-save-health').addEventListener('click', () => {
-            this.saveRecord();
+        // 新增记录按钮（根据当前tab决定行为）
+        const addBtn = document.getElementById('btn-health-add');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                if (this.currentTab === 'mood') {
+                    // 心情日志tab：写日记
+                    Diary.showForm();
+                } else {
+                    // 健康记录tab：保存记录
+                    this.saveRecord();
+                }
+            });
+        }
+
+        // Tab 切换
+        document.querySelectorAll('.health-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.healthTab;
+                this.switchTab(tabName);
+            });
         });
+
+        // 心情日志：视图切换
+        document.querySelectorAll('[data-mood-view]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const view = btn.dataset.moodView;
+                this.switchMoodView(view);
+            });
+        });
+
+        // 心情日志：日历导航
+        const moodPrev = document.getElementById('mood-cal-prev');
+        const moodNext = document.getElementById('mood-cal-next');
+        if (moodPrev) {
+            moodPrev.addEventListener('click', () => {
+                this.moodMonth.setMonth(this.moodMonth.getMonth() - 1);
+                this.renderMoodCalendar();
+            });
+        }
+        if (moodNext) {
+            moodNext.addEventListener('click', () => {
+                this.moodMonth.setMonth(this.moodMonth.getMonth() + 1);
+                this.renderMoodCalendar();
+            });
+        }
 
         // 查询按钮
         document.getElementById('btn-query-health').addEventListener('click', () => {
@@ -3863,6 +4095,220 @@ const Health = {
 
         // 加载今日记录
         this.loadByDate(Utils.today());
+
+        // 加载心情日志数据
+        Diary.loadData();
+    },
+
+    // 切换健康管理tab
+    switchTab(tabName) {
+        this.currentTab = tabName;
+
+        // 更新tab样式
+        document.querySelectorAll('.health-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.healthTab === tabName);
+        });
+
+        // 切换面板显示
+        const recordsPanel = document.getElementById('health-panel-records');
+        const moodPanel = document.getElementById('health-panel-mood');
+        if (recordsPanel) recordsPanel.classList.toggle('active', tabName === 'records');
+        if (moodPanel) moodPanel.classList.toggle('active', tabName === 'mood');
+
+        // 更新新增按钮文字
+        const addBtn = document.getElementById('btn-health-add');
+        if (addBtn) {
+            if (tabName === 'mood') {
+                addBtn.innerHTML = '<svg class="btn__icon"><use href="#icon-plus"/></svg>写日记';
+            } else {
+                addBtn.innerHTML = '<svg class="btn__icon"><use href="#icon-plus"/></svg>新增记录';
+            }
+        }
+
+        // 心情日志tab：刷新数据
+        if (tabName === 'mood') {
+            Diary.loadData();
+            if (this.moodView === 'calendar') {
+                this.renderMoodCalendar();
+            }
+        }
+    },
+
+    // 切换心情日志视图
+    switchMoodView(view) {
+        this.moodView = view;
+
+        // 更新按钮状态
+        document.querySelectorAll('[data-mood-view]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.moodView === view);
+        });
+
+        // 切换视图显示
+        const listView = document.getElementById('mood-list-view');
+        const calView = document.getElementById('mood-calendar-view');
+        if (listView) listView.classList.toggle('hidden', view !== 'list');
+        if (calView) calView.classList.toggle('hidden', view !== 'calendar');
+
+        if (view === 'calendar') {
+            this.renderMoodCalendar();
+        }
+    },
+
+    // 渲染心情日志列表
+    renderMoodList() {
+        const listEl = document.getElementById('mood-list-view');
+        if (!listEl) return;
+
+        // 复用Diary的渲染逻辑
+        const sorted = [...Diary.list].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (sorted.length === 0) {
+            listEl.innerHTML = `
+                <div class="empty-tip">
+                    <div class="empty-tip__icon empty-tip__icon--diary">
+                        <svg><use href="#icon-diary"/></svg>
+                    </div>
+                    <p class="empty-tip__text">今天发生了什么？📔</p>
+                    <p class="empty-tip__sub">记录每天的心情与故事</p>
+                </div>`;
+            return;
+        }
+
+        const moodEmojis = {
+            happy: '😀', '开心': '😀',
+            good: '😊', '平静': '😊', '满足': '😊', '充实': '😊', '期待': '😊',
+            normal: '😐', '一般': '😐', '慵懒': '😐',
+            sad: '😔', '烦躁': '😔',
+            cry: '😢'
+        };
+        const weatherEmojis = {
+            sunny: '☀️', '晴': '☀️',
+            cloudy: '⛅', '多云': '⛅', '阴': '⛅',
+            rainy: '🌧️', '小雨': '🌧️', '雨': '🌧️',
+            snow: '❄️', '雪': '❄️',
+            storm: '🌪️', '大风': '🌪️'
+        };
+        const moodColors = {
+            happy: 'var(--gradient-warm)',
+            good: 'var(--gradient-green)',
+            normal: 'var(--gradient-blue)',
+            sad: 'var(--gradient-ocean)',
+            cry: 'var(--gradient-sunset)',
+            '开心': 'var(--gradient-warm)',
+            '平静': 'var(--gradient-green)',
+            '满足': 'var(--gradient-green)',
+            '充实': 'var(--gradient-green)',
+            '期待': 'var(--gradient-green)',
+            '一般': 'var(--gradient-blue)',
+            '慵懒': 'var(--gradient-blue)',
+            '烦躁': 'var(--gradient-ocean)'
+        };
+
+        listEl.innerHTML = sorted.map(item => {
+            const moodGradient = moodColors[item.mood] || 'var(--gradient-primary)';
+            return `
+            <div class="diary-card" style="--mood-gradient: ${moodGradient};">
+                <div class="diary-side-bar"></div>
+                <div class="diary-card-inner">
+                    <div class="diary-header">
+                        <span class="diary-date">${item.date}</span>
+                        <div class="diary-mood-weather">
+                            <span class="diary-emoji-float">${weatherEmojis[item.weather] || ''}</span>
+                            <span class="diary-emoji-float">${moodEmojis[item.mood] || ''}</span>
+                        </div>
+                    </div>
+                    <div class="diary-content">${Utils.escapeHtml(item.notes)}</div>
+                    <div class="diary-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="Diary.showForm('${item.id}')">
+                            <svg class="btn__icon"><use href="#icon-edit"/></svg>编辑
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="Diary.confirmDelete('${item.id}')">
+                            <svg class="btn__icon"><use href="#icon-delete"/></svg>删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;}).join('');
+    },
+
+    // 渲染心情日志日历
+    renderMoodCalendar() {
+        const year = this.moodMonth.getFullYear();
+        const month = this.moodMonth.getMonth();
+
+        const titleEl = document.getElementById('mood-cal-title');
+        const gridEl = document.getElementById('mood-calendar-grid');
+        if (!titleEl || !gridEl) return;
+
+        titleEl.textContent = `${year}年${month + 1}月`;
+
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDayOfWeek = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+
+        const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+
+        // 构建日记日期映射
+        const diaryMap = {};
+        Diary.list.forEach(item => {
+            diaryMap[item.date] = item;
+        });
+
+        const today = Utils.today();
+        let html = dayNames.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+
+        // 上月日期
+        const prevMonthLastDay = new Date(year, month, 0).getDate();
+        for (let i = startDayOfWeek - 1; i >= 0; i--) {
+            const day = prevMonthLastDay - i;
+            html += `<div class="cal-day other-month">${day}</div>`;
+        }
+
+        // 当月日期
+        const moodEmojis = {
+            happy: '😀', '开心': '😀',
+            good: '😊', '平静': '😊', '满足': '😊', '充实': '😊', '期待': '😊',
+            normal: '😐', '一般': '😐', '慵懒': '😐',
+            sad: '😔', '烦躁': '😔',
+            cry: '😢'
+        };
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const hasDiary = diaryMap[dateStr];
+            const isToday = dateStr === today;
+
+            let classes = 'cal-day';
+            if (isToday) classes += ' today';
+            if (hasDiary) classes += ' has-diary';
+
+            const indicator = hasDiary ? `<span class="diary-indicator">${moodEmojis[hasDiary.mood] || '📝'}</span>` : '';
+
+            html += `<div class="${classes}" onclick="Health.onMoodDayClick('${dateStr}')">
+                ${day}
+                ${indicator}
+            </div>`;
+        }
+
+        // 下月日期补齐
+        const totalCells = startDayOfWeek + daysInMonth;
+        const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        for (let day = 1; day <= remaining; day++) {
+            html += `<div class="cal-day other-month">${day}</div>`;
+        }
+
+        gridEl.innerHTML = html;
+    },
+
+    // 心情日历日期点击
+    onMoodDayClick(dateStr) {
+        const existing = Diary.list.find(item => item.date === dateStr);
+        if (existing) {
+            Diary.showForm(existing.id);
+        } else {
+            Diary.showForm(null, dateStr);
+        }
     },
 
     async loadByDate(date) {

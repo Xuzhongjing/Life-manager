@@ -576,10 +576,6 @@
                 </button>
                 <div class="nav-divider"></div>
                 <div class="nav-group-label">记录</div>
-                <button class="nav-item" data-module="diary">
-                    <svg class="nav-item__icon"><use href="#icon-diary"/></svg>
-                    <span>日常日志</span>
-                </button>
                 <button class="nav-item" data-module="health">
                     <svg class="nav-item__icon"><use href="#icon-heart"/></svg>
                     <span>健康管理</span>
@@ -861,14 +857,22 @@
                             <svg class="module-title__deco"><use href="#icon-badge"/></svg>
                             健康管理
                         </h2>
-                        <p class="page-subtitle">体重、血糖、经期，一目了然</p>
+                        <p class="page-subtitle">体重、血糖、经期、心情，一目了然</p>
                     </div>
-                    <button id="btn-save-health" class="btn btn-primary">
+                    <button id="btn-health-add" class="btn btn-primary">
                         <svg class="btn__icon"><use href="#icon-plus"/></svg>
-                        保存记录
+                        新增记录
                     </button>
                 </div>
 
+                <!-- Tab 切换 -->
+                <div class="health-tabs">
+                    <button class="health-tab active" data-health-tab="records">健康记录</button>
+                    <button class="health-tab" data-health-tab="mood">心情日志</button>
+                </div>
+
+                <!-- 健康记录面板 -->
+                <div id="health-panel-records" class="health-records-panel">
                 <div class="health-layout">
                     <!-- 左侧：记录表单 -->
                     <div class="health-form-section section-card">
@@ -1003,6 +1007,47 @@
                             <p class="empty-tip__text">暂无健康记录</p>
                             <p class="empty-tip__sub">记录每一天的健康状态</p>
                         </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- 心情日志面板 -->
+                <div id="health-panel-mood" class="health-mood-panel">
+                    <!-- 视图切换 -->
+                    <div class="diary-view-toggle">
+                        <button class="view-btn active" data-mood-view="list">
+                            <svg class="view-btn__icon"><use href="#icon-list"/></svg>
+                            列表
+                        </button>
+                        <button class="view-btn" data-mood-view="calendar">
+                            <svg class="view-btn__icon"><use href="#icon-calendar"/></svg>
+                            日历
+                        </button>
+                    </div>
+
+                    <!-- 列表视图 -->
+                    <div id="mood-list-view" class="diary-list">
+                        <div class="empty-tip">
+                            <div class="empty-tip__icon empty-tip__icon--diary">
+                                <svg><use href="#icon-diary"/></svg>
+                            </div>
+                            <p class="empty-tip__text">今天发生了什么？📔</p>
+                            <p class="empty-tip__sub">记录每天的心情与故事</p>
+                        </div>
+                    </div>
+
+                    <!-- 日历视图 -->
+                    <div id="mood-calendar-view" class="diary-calendar hidden">
+                        <div class="calendar-header">
+                            <button id="mood-cal-prev" class="cal-nav" aria-label="上一月">
+                                <svg><use href="#icon-chevron-left"/></svg>
+                            </button>
+                            <span id="mood-cal-title"></span>
+                            <button id="mood-cal-next" class="cal-nav" aria-label="下一月">
+                                <svg><use href="#icon-chevron-right"/></svg>
+                            </button>
+                        </div>
+                        <div id="mood-calendar-grid" class="calendar-grid"></div>
                     </div>
                 </div>
             </section>
