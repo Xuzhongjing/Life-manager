@@ -2202,8 +2202,10 @@ const Skincare = {
                 }
             }
 
-            // 开封状态图标
-            const openIcon = item.openDate ? '✅' : '📦';
+            // 开封状态
+            const openIconSvg = item.openDate
+                ? '<svg class="item-meta-icon"><use href="#icon-open"/></svg>'
+                : '<svg class="item-meta-icon"><use href="#icon-package"/></svg>';
             const openText = item.openDate ? '已开封' : '未开封';
 
             // 价格和容量显示
@@ -2245,7 +2247,7 @@ const Skincare = {
                                 <span class="item-category">${Utils.escapeHtml(item.category)}</span>
                             </div>
                             <div class="item-brand">
-                                <span class="item-brand-icon">🏷️</span>
+                                <svg class="item-brand-icon"><use href="#icon-tag"/></svg>
                                 <span>${Utils.escapeHtml(item.brand || '无品牌')}</span>
                             </div>
                         </div>
@@ -2261,12 +2263,19 @@ const Skincare = {
                         </div>
                     </div>
                     ` : ''}
-                    <div class="item-info">
-                        <span><span class="item-info-icon">${openIcon}</span>${openText}</span>
+                    <div class="item-meta-row">
+                        <div class="item-meta">
+                            ${openIconSvg}
+                            <span>${openText}</span>
+                        </div>
                         <span class="item-expiry ${expiryClass}">${expiryText}</span>
                     </div>
-                    ${metaDisplay ? `<div class="item-info" style="color:var(--text-secondary)">
-                        <span><span class="item-info-icon">💰</span>${metaDisplay}</span>
+                    ${metaDisplay ? `<div class="item-meta-row">
+                        <div class="item-meta">
+                            <svg class="item-meta-icon"><use href="#icon-dollar"/></svg>
+                            <span>${metaDisplay}</span>
+                        </div>
+                    </div>` : ''}
                     </div>` : ''}
                     ${item.notes ? `<div class="item-info" style="color:var(--text-light)">${Utils.escapeHtml(item.notes)}</div>` : ''}
                     <div class="item-actions">
@@ -2819,16 +2828,19 @@ const Fridge = {
                                 <span class="item-category">${locInfo.icon} ${Utils.escapeHtml(item.location)}</span>
                             </div>
                             <div class="item-quantity">
-                                <span class="item-info-icon">📦</span>
+                                <svg class="item-brand-icon"><use href="#icon-package"/></svg>
                                 <span>${Utils.escapeHtml(qtyDisplay)}</span>
                             </div>
                         </div>
                     </div>
-                    <div class="item-info">
-                        <span><span class="item-info-icon">📅</span>购入：${item.purchaseDate || '未知'}</span>
+                    <div class="item-meta-row">
+                        <div class="item-meta">
+                            <svg class="item-meta-icon"><use href="#icon-calendar"/></svg>
+                            <span>购入：${item.purchaseDate || '未知'}</span>
+                        </div>
                         <span class="item-expiry ${expiryClass}">${expiryText}</span>
                     </div>
-                    ${item.notes ? `<div class="item-info" style="color:var(--text-light)">${Utils.escapeHtml(item.notes)}</div>` : ''}
+                    ${item.notes ? `<div class="item-notes">${Utils.escapeHtml(item.notes)}</div>` : ''}
                     <div class="item-actions">
                         ${actionButtons}
                     </div>
@@ -3234,20 +3246,26 @@ const Household = {
                                 <span class="item-category">${Utils.escapeHtml(item.category)}</span>
                             </div>
                             <div class="item-quantity">
-                                <span class="item-info-icon">📦</span>
+                                <svg class="item-brand-icon"><use href="#icon-package"/></svg>
                                 <span>${quantityText}</span>
                             </div>
                         </div>
                     </div>
-                    <div class="item-info">
-                        <span><span class="item-info-icon">📍</span>${Utils.escapeHtml(item.storageLocation || '未指定')}</span>
+                    <div class="item-meta-row">
+                        <div class="item-meta">
+                            <svg class="item-meta-icon"><use href="#icon-pin"/></svg>
+                            <span>${Utils.escapeHtml(item.storageLocation || '未指定')}</span>
+                        </div>
                         <span class="item-expiry ${expiryClass}">${expiryText}</span>
                     </div>
-                    <div class="item-info">
-                        <span><span class="item-info-icon">📅</span>购入：${item.purchaseDate || '未知'}</span>
+                    <div class="item-meta-row">
+                        <div class="item-meta">
+                            <svg class="item-meta-icon"><use href="#icon-calendar"/></svg>
+                            <span>购入：${item.purchaseDate || '未知'}</span>
+                        </div>
                         ${priceText ? `<span class="item-price">${priceText}</span>` : ''}
                     </div>
-                    ${item.notes ? `<div class="item-info" style="color:var(--text-light)">${Utils.escapeHtml(item.notes)}</div>` : ''}
+                    ${item.notes ? `<div class="item-notes">${Utils.escapeHtml(item.notes)}</div>` : ''}
                     <div class="item-actions">
                         <button class="btn btn-secondary btn-sm" onclick="Household.showForm('${item.id}')">
                             <svg class="btn__icon"><use href="#icon-edit"/></svg>编辑
