@@ -33,16 +33,19 @@ function seedDemoData(db) {
   // 3. 食材（15条）
   seedFood(db, userId, minusDays, addDays);
 
-  // 4. 生活用品（12条）
+  // 4. 彩妆（15条）
+  seedMakeup(db, userId, minusDays, addDays, addMonths);
+
+  // 5. 生活用品（12条）
   seedHousehold(db, userId, minusDays, addDays, addMonths);
 
-  // 5. 健康记录（15条，最近30天）
+  // 6. 健康记录（15条，最近30天）
   seedHealthRecords(db, userId, minusDays);
 
-  // 6. 日记（10条，最近10天）
+  // 7. 日记（10条，最近10天）
   seedDiary(db, userId, minusDays);
 
-  // 7. 本月提醒
+  // 8. 本月提醒
   seedMonthReminder(db, userId);
 
   console.log('Demo 数据填充完成（用户：demo / demo123456）');
@@ -132,6 +135,53 @@ function seedFood(db, userId, minusDays, addDays) {
   });
 
   console.log(`已填充 ${items.length} 条食材数据`);
+}
+
+function seedMakeup(db, userId, minusDays, addDays, addMonths) {
+  const items = [
+    // 2个已过期
+    { name: '烈艳蓝金唇膏999', category: '口红', brand: '迪奥', price: 350, color: '正红色', openDaysAgo: 374, shelf: 12, remaining: '40%', repurchase: '会回购', season: '四季', skin: '混合', notes: '经典正红，已过期' },
+    { name: '恒颜无瑕粉底液', category: '粉底', brand: 'YSL', price: 580, color: 'B20自然色', openDaysAgo: 390, shelf: 12, remaining: '30%', repurchase: '会回购', season: '四季', skin: '混合', notes: '持妆效果好，已过期' },
+    // 3个30天内
+    { name: '九色眼影盘', category: '眼影', brand: 'MAC', price: 420, color: '大地色系', openDaysAgo: 349, shelf: 12, remaining: '70%', repurchase: '考虑中', season: '秋冬', skin: '混合', notes: '大地色很实用' },
+    { name: '炫色腮红', category: '腮红', brand: 'NARS', price: 300, color: 'Orgasm高潮色', openDaysAgo: 339, shelf: 12, remaining: '50%', repurchase: '会回购', season: '四季', skin: '混合', notes: '网红色号' },
+    { name: '炫密睫毛膏', category: '睫毛膏', brand: '香奈儿', price: 380, color: '黑色', openDaysAgo: 344, shelf: 12, remaining: '60%', repurchase: '会回购', season: '四季', skin: '混合', notes: '纤长效果好' },
+    // 4个90天内
+    { name: '三角眉笔', category: '眉笔', brand: '花西子', price: 79, color: '深棕色', openDaysAgo: 272, shelf: 12, remaining: '50%', repurchase: '会回购', season: '四季', skin: '混合', notes: '国货好品' },
+    { name: '高光粉饼', category: '高光', brand: '完美日记', price: 99, color: '香槟色', openDaysAgo: 256, shelf: 12, remaining: '70%', repurchase: '考虑中', season: '四季', skin: '混合', notes: '日常百搭' },
+    { name: '遮瑕膏', category: '遮瑕', brand: '迪奥', price: 320, color: '自然色', openDaysAgo: 246, shelf: 12, remaining: '40%', repurchase: '会回购', season: '四季', skin: '干性', notes: '遮盖力强' },
+    { name: '空气蜜粉散粉', category: '散粉', brand: '花西子', price: 169, color: '透明色', openDaysAgo: 282, shelf: 12, remaining: '55%', repurchase: '会回购', season: '四季', skin: '混合', notes: '定妆持久' },
+    // 6个正常
+    { name: '小金条口红21', category: '口红', brand: 'YSL', price: 380, color: '复古红', openDaysAgo: 182, shelf: 12, remaining: '70%', repurchase: '会回购', season: '秋冬', skin: '混合', notes: '复古显白' },
+    { name: '定制无瑕粉底液', category: '粉底', brand: 'MAC', price: 450, color: 'N18', openDaysAgo: 95, shelf: 12, remaining: '80%', repurchase: '考虑中', season: '四季', skin: '混合', notes: '持妆666' },
+    { name: '四色眼影盘', category: '眼影', brand: '香奈儿', price: 580, color: '暖棕调', openDaysAgo: 141, shelf: 12, remaining: '75%', repurchase: '会回购', season: '秋冬', skin: '混合', notes: '高级质感' },
+    { name: '微醺腮红', category: '腮红', brand: '完美日记', price: 89, color: '蜜桃色', unopened: true, shelf: 18, remaining: '100%', notes: '未开封' },
+    { name: '纵欲惹火唇膏', category: '口红', brand: 'NARS', price: 280, color: 'Mona红棕', openDaysAgo: 79, shelf: 12, remaining: '85%', repurchase: '考虑中', season: '秋冬', skin: '混合', notes: '红棕气质' },
+    { name: '凝脂轻透亮高光', category: '高光', brand: '迪奥', price: 420, color: '珍珠白', unopened: true, shelf: 24, remaining: '100%', notes: '未开封囤货' },
+  ];
+
+  const stmt = db.prepare(`
+    INSERT INTO makeup (user_id, name, category, brand, price, color, open_date, shelf_life_months, expiry_date, remaining_amount, repurchase, season, skin_type, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  items.forEach(item => {
+    const openDate = item.unopened ? null : minusDays(item.openDaysAgo);
+    let expiryDate;
+    if (item.unopened) {
+      expiryDate = addMonths(item.shelf);
+    } else {
+      const d = new Date(openDate);
+      d.setMonth(d.getMonth() + item.shelf);
+      expiryDate = d.toISOString().split('T')[0];
+    }
+
+    stmt.run(userId, item.name, item.category, item.brand, item.price,
+      item.color, openDate, item.shelf, expiryDate, item.remaining,
+      item.repurchase || null, item.season || null, item.skin || null, item.notes);
+  });
+
+  console.log(`已填充 ${items.length} 条彩妆数据`);
 }
 
 function seedHousehold(db, userId, minusDays, addDays, addMonths) {

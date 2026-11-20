@@ -556,6 +556,7 @@ const API = {
         '/skincare': '/skincare',
         '/fridge': '/food',
         '/household': '/household',
+        '/makeup': '/makeup',
         '/diary': '/diary',
         '/health': '/health',
         '/dashboard': '/dashboard',
@@ -734,6 +735,51 @@ const API = {
 
     async deleteSkincare(id) {
         const res = await this.request(`/skincare/${id}`, {
+            method: 'DELETE'
+        });
+        return res;
+    },
+
+    // 彩妆
+    async getMakeup(params = {}) {
+        let endpoint = '/makeup';
+        const queryParts = [];
+        if (params.archived !== undefined && params.archived !== null) {
+            queryParts.push(`archived=${params.archived ? 1 : 0}`);
+        }
+        if (params.search) {
+            queryParts.push(`search=${encodeURIComponent(params.search)}`);
+        }
+        if (queryParts.length > 0) {
+            endpoint += '?' + queryParts.join('&');
+        }
+        const res = await this.request(endpoint);
+        return res;
+    },
+
+    async getMakeupSummary() {
+        const res = await this.request('/makeup/summary');
+        return res;
+    },
+
+    async addMakeup(data) {
+        const res = await this.request('/makeup', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+        return res;
+    },
+
+    async updateMakeup(id, data) {
+        const res = await this.request(`/makeup/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+        return res;
+    },
+
+    async deleteMakeup(id) {
+        const res = await this.request(`/makeup/${id}`, {
             method: 'DELETE'
         });
         return res;
@@ -1087,8 +1133,19 @@ const Auth = {
         document.getElementById('auth-page').classList.add('hidden');
         document.getElementById('app-page').classList.remove('hidden');
         if (this.currentUser) {
-            document.getElementById('nav-username').textContent = this.currentUser.username;
+            // 更新顶栏用户名
+            const topbarUsername = document.getElementById('topbar-username');
+            if (topbarUsername) {
+                topbarUsername.textContent = this.currentUser.username;
+            }
+            // 兼容旧的侧边栏用户名
+            const navUsername = document.getElementById('nav-username');
+            if (navUsername) {
+                navUsername.textContent = this.currentUser.username;
+            }
         }
+        // 更新顶栏日期
+        this._updateTopbarDate();
         // 初始化各模块
         Dashboard.loadData();
         Skincare.loadData();
@@ -1096,7 +1153,23 @@ const Auth = {
         Fridge.loadData();
         Fridge.loadSummary();
         Household.loadData();
+        if (typeof Makeup !== 'undefined') {
+            Makeup.loadData();
+            Makeup.loadSummary();
+        }
         Diary.loadData();
+    },
+
+    _updateTopbarDate() {
+        const dateEl = document.getElementById('topbar-date');
+        if (!dateEl) return;
+        const now = new Date();
+        const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const day = now.getDate();
+        const weekDay = weekDays[now.getDay()];
+        dateEl.textContent = `${year}年${month}月${day}日 · ${weekDay}`;
     },
 
     logout() {
@@ -1122,14 +1195,25 @@ const Nav = {
             item.addEventListener('click', () => {
                 this.switchModule(item.dataset.module);
                 // 移动端关闭菜单
-                document.querySelector('.nav-menu').classList.remove('open');
+                document.getElementById('sidebar').classList.remove('open');
             });
         });
 
         // 移动端导航切换
-        document.getElementById('nav-toggle').addEventListener('click', () => {
-            document.querySelector('.nav-menu').classList.toggle('open');
-        });
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('open');
+            });
+        }
+
+        // 顶栏退出按钮
+        const logoutBtn = document.getElementById('btn-logout-top');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                Auth.logout();
+            });
+        }
     },
 
     switchModule(moduleName) {
@@ -1144,7 +1228,10 @@ const Nav = {
         document.querySelectorAll('.module').forEach(mod => {
             mod.classList.add('hidden');
         });
-        document.getElementById(`module-${moduleName}`).classList.remove('hidden');
+        const targetModule = document.getElementById(`module-${moduleName}`);
+        if (targetModule) {
+            targetModule.classList.remove('hidden');
+        }
 
         // 模块特定的刷新
         if (moduleName === 'dashboard') {
@@ -1154,6 +1241,11 @@ const Nav = {
             // 刷新心情日志数据
             if (typeof Diary !== 'undefined') {
                 Diary.loadData();
+            }
+        } else if (moduleName === 'makeup') {
+            if (typeof Makeup !== 'undefined') {
+                Makeup.loadData();
+                Makeup.loadSummary();
             }
         }
     }
@@ -1507,7 +1599,7 @@ const Dashboard = {
         this.updateDemoBanner();
     },
 
-    // 渲染全部看板内容
+    // 渲染全部看板内容（工作台桌面布局）
     renderAll() {
         const container = document.getElementById('dashboard-content');
         if (!container) return;
@@ -1515,39 +1607,247 @@ const Dashboard = {
         // 计算临期总览统计
         const expiryStats = this._calcExpiryStats();
 
-        // 今日关注小标题
-        const sectionTitle = `<div class="desk-section-title">今日关注</div>
-            <div class="desk-section-subtitle">需要你留意的物品到期情况</div>`;
-        // 临期总览数字条
-        const summaryBar = this.renderExpirySummaryBar(expiryStats);
-        // 第一排临期卡片
-        const row1 = this.renderExpiringCards();
-        // 第二排：健康快照 + 本月提醒
-        const row2 = this.renderSecondRow();
-        // 第三排：最新日志 + 年度提醒
-        const row3 = this.renderThirdRow();
-        // 底部：库存概览
-        const statsRow = this.renderStatsRow();
+        // 更新问候日期
+        this._updateGreetingDate();
 
-        container.innerHTML = sectionTitle + summaryBar + row1 + row2 + row3 + statsRow;
+        // 状态统计卡（3个）
+        const statsCards = this.renderStatusCards(expiryStats);
 
-        // 更新今日日期
-        this._updateTodayDate();
+        // 第一行：30天冰箱到期 | 90天护肤品到期
+        const row1 = this.renderDeskRow1();
+
+        // 第二行：健康快照 | 本月提醒
+        const row2 = this.renderDeskRow2();
+
+        // 第三行：最新日志 | 年度提醒
+        const row3 = this.renderDeskRow3();
+
+        container.innerHTML = statsCards + row1 + row2 + row3;
 
         // 绑定事件
         this._bindDashboardEvents();
     },
 
-    // 更新今日日期显示
-    _updateTodayDate() {
-        const dateEl = document.getElementById('dashboard-today-date');
+    // 更新桌面问候日期
+    _updateGreetingDate() {
+        const dateEl = document.getElementById('desk-greeting-date');
         if (!dateEl) return;
         const now = new Date();
         const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        const year = now.getFullYear();
         const month = now.getMonth() + 1;
         const day = now.getDate();
         const weekDay = weekDays[now.getDay()];
-        dateEl.textContent = `${month}月${day}日 · ${weekDay}`;
+        dateEl.textContent = `${year}年${month}月${day}日 · ${weekDay}`;
+    },
+
+    // 状态统计卡（3个：已过期/30天临期/90天预警）
+    renderStatusCards(stats) {
+        return `
+            <div class="stats-row fade-in">
+                <div class="stat-card stat-card--expired" onclick="Nav.switchModule('fridge')">
+                    <div class="stat-card__num">${stats.expired}</div>
+                    <div class="stat-card__label">已过期</div>
+                </div>
+                <div class="stat-card stat-card--urgent" onclick="Nav.switchModule('fridge')">
+                    <div class="stat-card__num">${stats.expiring30}</div>
+                    <div class="stat-card__label">30天临期</div>
+                </div>
+                <div class="stat-card stat-card--warning" onclick="Nav.switchModule('skincare')">
+                    <div class="stat-card__num">${stats.expiring90}</div>
+                    <div class="stat-card__label">90天预警</div>
+                </div>
+            </div>
+        `;
+    },
+
+    // 第一行：30天冰箱到期 | 90天护肤品到期
+    renderDeskRow1() {
+        const fridgeItems = (this.expiringFood || []).slice(0, 5);
+        const skincareItems = (this.expiringSkincare || []).filter(item => {
+            const days = Skincare.getExpiryDays(item);
+            return days !== null && days >= 0 && days <= 90;
+        }).slice(0, 5);
+
+        const renderItem = (item, days, nameKey = 'name') => {
+            const name = item[nameKey] || item.name || '未命名';
+            let daysClass = 'normal';
+            let daysText = '';
+            if (days !== null) {
+                if (days < 0) {
+                    daysClass = 'expired';
+                    daysText = `已过期${Math.abs(days)}天`;
+                } else if (days <= 30) {
+                    daysClass = 'urgent';
+                    daysText = `还剩${days}天`;
+                } else {
+                    daysText = `还剩${days}天`;
+                }
+            }
+            return `
+                <li class="desk-card__item">
+                    <span class="desk-card__item-name">${Utils.escapeHtml(name)}</span>
+                    ${daysText ? `<span class="desk-card__item-days desk-card__item-days--${daysClass}">${daysText}</span>` : ''}
+                </li>
+            `;
+        };
+
+        const fridgeList = fridgeItems.length > 0
+            ? fridgeItems.map(item => {
+                const days = Fridge.getExpiryDays(item);
+                return renderItem(item, days, 'name');
+            }).join('')
+            : '<li class="desk-card__item"><span class="desk-card__item-name" style="color: var(--text-light);">暂无临期食材</span></li>';
+
+        const skincareList = skincareItems.length > 0
+            ? skincareItems.map(item => {
+                const days = Skincare.getExpiryDays(item);
+                return renderItem(item, days, 'name');
+            }).join('')
+            : '<li class="desk-card__item"><span class="desk-card__item-name" style="color: var(--text-light);">暂无临期护肤品</span></li>';
+
+        return `
+            <div class="desk-grid fade-in fade-in-delay-1">
+                <div class="desk-card desk-card--orange">
+                    <div class="desk-card__header">
+                        <div class="desk-card__title">30天冰箱到期</div>
+                        <a class="desk-card__link" onclick="Nav.switchModule('fridge')">去查看 →</a>
+                    </div>
+                    <ul class="desk-card__list">${fridgeList}</ul>
+                </div>
+                <div class="desk-card desk-card--yellow">
+                    <div class="desk-card__header">
+                        <div class="desk-card__title">90天护肤品到期</div>
+                        <a class="desk-card__link" onclick="Nav.switchModule('skincare')">去查看 →</a>
+                    </div>
+                    <ul class="desk-card__list">${skincareList}</ul>
+                </div>
+            </div>
+        `;
+    },
+
+    // 第二行：健康快照 | 本月提醒
+    renderDeskRow2() {
+        // 健康快照
+        const health = this.healthLatest || {};
+        const weight = health.weight ? `${health.weight} 斤` : '--';
+        const weather = health.weather || '晴';
+        const comfort = health.comfort || '--';
+
+        // 本月提醒
+        const reminder = this.monthReminder || '暂无本月提醒';
+        const reminderLines = reminder.split('\n').filter(l => l.trim()).slice(0, 5);
+
+        const reminderList = reminderLines.length > 0
+            ? reminderLines.map(line => `<li class="reminder-text-item">${Utils.escapeHtml(line)}</li>`).join('')
+            : '<li class="reminder-text-item" style="color: var(--text-light);">暂无本月提醒</li>';
+
+        return `
+            <div class="desk-grid fade-in fade-in-delay-2">
+                <div class="desk-card desk-card--blue">
+                    <div class="desk-card__header">
+                        <div class="desk-card__title">健康快照</div>
+                        <a class="desk-card__link" onclick="Nav.switchModule('health')">去记录 →</a>
+                    </div>
+                    <div class="health-snapshot">
+                        <div class="health-snapshot__item">
+                            <div class="health-snapshot__value">${weight}</div>
+                            <div class="health-snapshot__label">最新体重</div>
+                        </div>
+                        <div class="health-snapshot__item">
+                            <div class="health-snapshot__value">${weather}</div>
+                            <div class="health-snapshot__label">今日天气</div>
+                        </div>
+                        <div class="health-snapshot__item">
+                            <div class="health-snapshot__value">${comfort}</div>
+                            <div class="health-snapshot__label">体感舒适度</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="desk-card desk-card--green">
+                    <div class="desk-card__header">
+                        <div class="desk-card__title">本月提醒</div>
+                        <a class="desk-card__link" onclick="Dashboard.editMonthReminder()">编辑 →</a>
+                    </div>
+                    <ul class="reminder-text-list">${reminderList}</ul>
+                </div>
+            </div>
+        `;
+    },
+
+    // 第三行：最新日志 | 年度提醒
+    renderDeskRow3() {
+        // 最新日志（从Diary获取）
+        let latestDiaryHtml = '';
+        if (typeof Diary !== 'undefined' && Diary.list && Diary.list.length > 0) {
+            const latest = Diary.list.slice(0, 3);
+            latestDiaryHtml = latest.map(item => `
+                <div class="latest-diary-item">
+                    <div class="latest-diary-item__date">${item.date || ''}</div>
+                    <div class="latest-diary-item__content">${Utils.escapeHtml(item.content || item.mood || '')}</div>
+                </div>
+            `).join('');
+        } else {
+            latestDiaryHtml = `
+                <div class="latest-diary-item">
+                    <div class="latest-diary-item__content" style="color: var(--text-light);">暂无日志记录</div>
+                </div>
+            `;
+        }
+
+        // 年度提醒（模拟：基于临期数据生成年度提醒）
+        const yearlyReminders = this._generateYearlyReminders();
+
+        return `
+            <div class="desk-grid fade-in fade-in-delay-3">
+                <div class="desk-card desk-card--purple">
+                    <div class="desk-card__header">
+                        <div class="desk-card__title">最新日志</div>
+                        <a class="desk-card__link" onclick="Nav.switchModule('health')">去记录 →</a>
+                    </div>
+                    <div>${latestDiaryHtml}</div>
+                </div>
+                <div class="desk-card desk-card--red">
+                    <div class="desk-card__header">
+                        <div class="desk-card__title">年度提醒</div>
+                        <a class="desk-card__link" onclick="Nav.switchModule('fridge')">查看更多 →</a>
+                    </div>
+                    <ul class="yearly-reminder-list">${yearlyReminders}</ul>
+                </div>
+            </div>
+        `;
+    },
+
+    // 生成年度提醒列表
+    _generateYearlyReminders() {
+        const reminders = [];
+        const colors = ['red', 'orange', 'blue', 'green', 'purple'];
+
+        // 从临期数据中挑选一些作为年度提醒
+        const fs = this.fridgeSummary || {};
+        if (fs.expiring90 && fs.expiring90 > 0) {
+            reminders.push({ text: `${fs.expiring90} 样食材将在90天内到期`, color: 'orange' });
+        }
+        const ss = this.skincareSummary || {};
+        if (ss.expiring90 && ss.expiring90 > 0) {
+            reminders.push({ text: `${ss.expiring90} 件护肤品将在90天内到期`, color: 'yellow' });
+        }
+
+        // 健康年度提醒
+        if (this.healthMonthCount !== undefined) {
+            reminders.push({ text: `本月已记录 ${this.healthMonthCount} 次健康数据`, color: 'green' });
+        }
+
+        if (reminders.length === 0) {
+            return '<li class="yearly-reminder-item"><span class="yearly-reminder-dot yearly-reminder-dot--green"></span>暂无年度提醒</li>';
+        }
+
+        return reminders.map((r, i) => `
+            <li class="yearly-reminder-item">
+                <span class="yearly-reminder-dot yearly-reminder-dot--${r.color || colors[i % colors.length]}"></span>
+                ${Utils.escapeHtml(r.text)}
+            </li>
+        `).join('');
     },
 
     // ===== 计算临期总览统计 =====
@@ -2019,9 +2319,9 @@ const Skincare = {
         }
 
         // Tab 切换
-        document.querySelectorAll('.skincare-tab').forEach(tab => {
+        document.querySelectorAll('[data-skincare-tab]').forEach(tab => {
             tab.addEventListener('click', () => {
-                const tabName = tab.dataset.tab;
+                const tabName = tab.dataset.skincareTab;
                 this.switchTab(tabName);
             });
         });
@@ -2103,7 +2403,7 @@ const Skincare = {
         }
     },
 
-    // 渲染统计卡片
+    // 渲染统计卡片（工作台风格：3列）
     renderSummary() {
         const statsEl = document.getElementById('skincare-stats');
         if (!statsEl) return;
@@ -2111,25 +2411,20 @@ const Skincare = {
         const s = this.summary || {};
         const totalCount = s.totalCount || 0;
         const expiring90 = s.expiring90 || 0;
-        const totalValue = s.totalValue || 0;
-        const categoryCount = s.categoryCount || 0;
+        const expired = s.expired || 0;
 
         statsEl.innerHTML = `
-            <div class="skincare-stat-card">
-                <div class="skincare-stat-num">${totalCount}</div>
-                <div class="skincare-stat-label">总数</div>
+            <div class="stat-card stat-card--expired">
+                <div class="stat-card__num">${expired}</div>
+                <div class="stat-card__label">已过期</div>
             </div>
-            <div class="skincare-stat-card warn">
-                <div class="skincare-stat-num">${expiring90}</div>
-                <div class="skincare-stat-label">90天临期</div>
+            <div class="stat-card stat-card--urgent">
+                <div class="stat-card__num">${expiring90}</div>
+                <div class="stat-card__label">90天临期</div>
             </div>
-            <div class="skincare-stat-card">
-                <div class="skincare-stat-num">¥${totalValue.toFixed(0)}</div>
-                <div class="skincare-stat-label">总价值</div>
-            </div>
-            <div class="skincare-stat-card">
-                <div class="skincare-stat-num">${categoryCount}</div>
-                <div class="skincare-stat-label">分类数</div>
+            <div class="stat-card stat-card--warning">
+                <div class="stat-card__num">${totalCount}</div>
+                <div class="stat-card__label">在库总数</div>
             </div>
         `;
     },
@@ -2177,8 +2472,8 @@ const Skincare = {
         if (searchInput) searchInput.value = '';
 
         // 更新 Tab 样式
-        document.querySelectorAll('.skincare-tab').forEach(t => {
-            t.classList.toggle('active', t.dataset.tab === tab);
+        document.querySelectorAll('[data-skincare-tab]').forEach(t => {
+            t.classList.toggle('active', t.dataset.skincareTab === tab);
         });
 
         this.loadData();
@@ -2678,9 +2973,9 @@ const Fridge = {
         }
 
         // Tab 切换
-        document.querySelectorAll('.fridge-tab').forEach(tab => {
+        document.querySelectorAll('[data-fridge-tab]').forEach(tab => {
             tab.addEventListener('click', () => {
-                const tabName = tab.dataset.tab;
+                const tabName = tab.dataset.fridgeTab;
                 this.switchTab(tabName);
             });
         });
@@ -2748,7 +3043,7 @@ const Fridge = {
         }
     },
 
-    // 渲染统计卡片
+    // 渲染统计卡片（工作台风格：3列）
     renderSummary() {
         const statsEl = document.getElementById('fridge-stats');
         if (!statsEl) return;
@@ -2757,24 +3052,19 @@ const Fridge = {
         const expired = s.expired || 0;
         const expiring30 = s.expiring30 || 0;
         const warning90 = s.expiring90 || 0;
-        const lowStock = s.lowStock || 0;
 
         statsEl.innerHTML = `
-            <div class="fridge-stat-card danger">
-                <div class="fridge-stat-value">${expired}</div>
-                <div class="fridge-stat-label">已过期</div>
+            <div class="stat-card stat-card--expired">
+                <div class="stat-card__num">${expired}</div>
+                <div class="stat-card__label">已过期</div>
             </div>
-            <div class="fridge-stat-card warn">
-                <div class="fridge-stat-value">${expiring30}</div>
-                <div class="fridge-stat-label">30天临期</div>
+            <div class="stat-card stat-card--urgent">
+                <div class="stat-card__num">${expiring30}</div>
+                <div class="stat-card__label">30天临期</div>
             </div>
-            <div class="fridge-stat-card">
-                <div class="fridge-stat-value">${warning90}</div>
-                <div class="fridge-stat-label">90天预警</div>
-            </div>
-            <div class="fridge-stat-card">
-                <div class="fridge-stat-value">${lowStock}</div>
-                <div class="fridge-stat-label">库存不足</div>
+            <div class="stat-card stat-card--warning">
+                <div class="stat-card__num">${warning90}</div>
+                <div class="stat-card__label">90天预警</div>
             </div>
         `;
     },
@@ -2822,8 +3112,8 @@ const Fridge = {
         if (searchInput) searchInput.value = '';
 
         // 更新 Tab 样式
-        document.querySelectorAll('.fridge-tab').forEach(t => {
-            t.classList.toggle('active', t.dataset.tab === tab);
+        document.querySelectorAll('[data-fridge-tab]').forEach(t => {
+            t.classList.toggle('active', t.dataset.fridgeTab === tab);
         });
 
         this.loadData();
@@ -3250,39 +3540,165 @@ const Household = {
     list: [],
     currentCategoryFilter: 'all',
     currentLocationFilter: 'all',
+    currentTab: 'active',
+    searchQuery: '',
+    summary: null,
     _formCategory: '',
 
     init() {
-        // 分类筛选（自定义下拉）
-        CategorySelect.renderCustomSelect(
-            'household-category-filter',
-            'household',
-            'all',
-            (value) => {
-                this.currentCategoryFilter = value;
-                this.renderList();
-            },
-            { showAllOption: true, allOptionLabel: '全部分类' }
-        );
+        // 搜索框
+        const searchInput = document.getElementById('household-search');
+        if (searchInput) {
+            let searchTimer = null;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimer);
+                const value = e.target.value.trim();
+                searchTimer = setTimeout(() => {
+                    this.search(value);
+                }, 300);
+            });
+        }
 
-        // 位置筛选
-        document.getElementById('household-location-filter').addEventListener('change', (e) => {
-            this.currentLocationFilter = e.target.value;
-            this.renderList();
+        // Tab 切换
+        document.querySelectorAll('[data-household-tab]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.householdTab;
+                this.switchTab(tabName);
+            });
         });
+
+        // 品类网格筛选
+        const filterContainer = document.getElementById('household-category-filter');
+        if (filterContainer) {
+            filterContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.category-grid-card');
+                if (card) {
+                    const category = card.dataset.category;
+                    this.currentCategoryFilter = category;
+                    this.renderCategoryGrid();
+                    this.renderList();
+                }
+            });
+        }
+
+        // 位置筛选（兼容旧版）
+        const locationFilter = document.getElementById('household-location-filter');
+        if (locationFilter) {
+            locationFilter.addEventListener('change', (e) => {
+                this.currentLocationFilter = e.target.value;
+                this.renderList();
+            });
+        }
 
         // 新增按钮
-        document.getElementById('btn-add-household').addEventListener('click', () => {
-            this.showForm();
+        const addBtn = document.getElementById('btn-add-household');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                this.showForm();
+            });
+        }
+
+        // 快速添加标签（兼容旧版）
+        const quickTagsEl = document.getElementById('household-quick-tags');
+        if (quickTagsEl && typeof QuickTags !== 'undefined') {
+            QuickTags.render(
+                'household-quick-tags',
+                QuickTags.household,
+                (item) => this.showForm(null, item),
+                (item) => this.quickAdd(item)
+            );
+        }
+    },
+
+    // 切换 Tab
+    switchTab(tab) {
+        this.currentTab = tab;
+        this.searchQuery = '';
+        const searchInput = document.getElementById('household-search');
+        if (searchInput) searchInput.value = '';
+
+        document.querySelectorAll('[data-household-tab]').forEach(t => {
+            t.classList.toggle('active', t.dataset.householdTab === tab);
         });
 
-        // 快速添加标签
-        QuickTags.render(
-            'household-quick-tags',
-            QuickTags.household,
-            (item) => this.showForm(null, item),  // 点击：打开弹窗并预填
-            (item) => this.quickAdd(item)        // 长按：直接添加
-        );
+        this.loadData();
+    },
+
+    // 搜索
+    search(value) {
+        this.searchQuery = value;
+        this.loadData();
+    },
+
+    // 加载统计数据
+    async loadSummary() {
+        // 生活用品暂时前端计算统计
+        this.renderSummary();
+    },
+
+    // 渲染统计卡片（工作台风格：3列）
+    renderSummary() {
+        const statsEl = document.getElementById('household-stats');
+        if (!statsEl) return;
+
+        let expired = 0, expiring30 = 0, total = 0;
+        this.list.forEach(item => {
+            if (item.archived) return;
+            total++;
+            const days = this.getExpiryDays(item);
+            if (days !== null) {
+                if (days < 0) expired++;
+                else if (days <= 30) expiring30++;
+            }
+        });
+
+        statsEl.innerHTML = `
+            <div class="stat-card stat-card--expired">
+                <div class="stat-card__num">${expired}</div>
+                <div class="stat-card__label">已过期</div>
+            </div>
+            <div class="stat-card stat-card--urgent">
+                <div class="stat-card__num">${expiring30}</div>
+                <div class="stat-card__label">30天临期</div>
+            </div>
+            <div class="stat-card stat-card--warning">
+                <div class="stat-card__num">${total}</div>
+                <div class="stat-card__label">在库总数</div>
+            </div>
+        `;
+    },
+
+    // 渲染品类卡片网格
+    renderCategoryGrid() {
+        const container = document.getElementById('household-category-filter');
+        if (!container) return;
+
+        const categoryCount = {};
+        let totalCount = 0;
+        this.list.forEach(item => {
+            if (item.archived) return;
+            const cat = item.category || '其他';
+            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+            totalCount++;
+        });
+
+        const categories = Object.keys(categoryCount).sort((a, b) => categoryCount[b] - categoryCount[a]);
+
+        const allCard = `
+            <div class="category-grid-card ${this.currentCategoryFilter === 'all' ? 'active' : ''}" data-category="all">
+                <div class="category-grid-card__count">${totalCount}</div>
+                <div class="category-grid-card__name">全部</div>
+            </div>
+        `;
+
+        const categoryCards = categories.map(cat => `
+            <div class="category-grid-card ${this.currentCategoryFilter === cat ? 'active' : ''}" data-category="${Utils.escapeHtml(cat)}">
+                <div class="category-grid-card__count">${categoryCount[cat]}</div>
+                <div class="category-grid-card__name">${Utils.escapeHtml(cat)}</div>
+            </div>
+        `).join('');
+
+        container.innerHTML = `<div class="category-grid">${allCard}${categoryCards}</div>`;
     },
 
     // 快捷添加（直接添加，不弹窗）
@@ -3316,9 +3732,21 @@ const Household = {
     },
 
     async loadData() {
-        const res = await API.getHousehold();
+        const params = {};
+        if (this.currentTab === 'archive') {
+            params.archived = true;
+        } else {
+            params.archived = false;
+        }
+        if (this.searchQuery) {
+            params.search = this.searchQuery;
+        }
+
+        const res = await API.getHousehold(params);
         if (res.success) {
             this.list = res.data || [];
+            this.renderCategoryGrid();
+            this.renderSummary();
             this.renderList();
             if (typeof Onboarding !== 'undefined') Onboarding.checkProgress();
         } else {
@@ -4032,7 +4460,7 @@ const Health = {
         }
 
         // Tab 切换
-        document.querySelectorAll('.health-tab').forEach(tab => {
+        document.querySelectorAll('[data-health-tab]').forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabName = tab.dataset.healthTab;
                 this.switchTab(tabName);
@@ -4105,7 +4533,7 @@ const Health = {
         this.currentTab = tabName;
 
         // 更新tab样式
-        document.querySelectorAll('.health-tab').forEach(t => {
+        document.querySelectorAll('[data-health-tab]').forEach(t => {
             t.classList.toggle('active', t.dataset.healthTab === tabName);
         });
 
@@ -4722,6 +5150,410 @@ const Onboarding = {
     }
 };
 
+// ===== 彩妆管理模块 =====
+const Makeup = {
+    list: [],
+    currentFilter: 'all',
+    selectedCategory: '',
+    currentTab: 'active',
+    searchQuery: '',
+    summary: null,
+
+    // 彩妆分类
+    categories: ['口红', '粉底', '眼影', '腮红', '睫毛膏', '眉笔', '高光', '遮瑕', '散粉'],
+
+    init() {
+        // 搜索框
+        const searchInput = document.getElementById('makeup-search');
+        if (searchInput) {
+            let searchTimer = null;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimer);
+                const value = e.target.value.trim();
+                searchTimer = setTimeout(() => {
+                    this.search(value);
+                }, 300);
+            });
+        }
+
+        // Tab 切换
+        document.querySelectorAll('[data-makeup-tab]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.makeupTab;
+                this.switchTab(tabName);
+            });
+        });
+
+        // 新增按钮
+        const addBtn = document.getElementById('btn-add-makeup');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                this.showForm();
+            });
+        }
+
+        // 品类网格点击事件
+        const filterContainer = document.getElementById('makeup-category-filter');
+        if (filterContainer) {
+            filterContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.category-grid-card');
+                if (card) {
+                    const category = card.dataset.category;
+                    this.currentFilter = category;
+                    this.renderCategoryGrid();
+                    this.renderList();
+                }
+            });
+        }
+    },
+
+    // 计算到期天数
+    getExpiryDays(item) {
+        if (item.expiryDate) {
+            return Utils.daysFromToday(item.expiryDate);
+        }
+        if (!item.openDate || !item.shelfLifeMonths) return null;
+        const openDate = new Date(item.openDate);
+        const expiryDate = new Date(openDate);
+        expiryDate.setMonth(expiryDate.getMonth() + parseInt(item.shelfLifeMonths));
+        return Utils.daysFromToday(Utils.formatDate(expiryDate));
+    },
+
+    // 获取到期日期
+    getExpiryDate(item) {
+        if (item.expiryDate) return item.expiryDate;
+        if (!item.openDate || !item.shelfLifeMonths) return '';
+        const openDate = new Date(item.openDate);
+        const expiryDate = new Date(openDate);
+        expiryDate.setMonth(expiryDate.getMonth() + parseInt(item.shelfLifeMonths));
+        return Utils.formatDate(expiryDate);
+    },
+
+    // 获取状态类型
+    getStatusType(item) {
+        const days = this.getExpiryDays(item);
+        if (days === null) return 'normal';
+        if (days < 0) return 'expired';
+        if (days <= 30) return 'urgent';
+        return 'normal';
+    },
+
+    // 加载统计数据
+    async loadSummary() {
+        const res = await API.getMakeupSummary();
+        if (res.success) {
+            this.summary = res.data || {};
+            this.renderSummary();
+        } else {
+            console.error('加载彩妆统计失败:', res.message);
+        }
+    },
+
+    // 渲染统计卡片（工作台风格：3列）
+    renderSummary() {
+        const statsEl = document.getElementById('makeup-stats');
+        if (!statsEl) return;
+
+        const s = this.summary || {};
+        const totalCount = s.totalCount || 0;
+        const expiring90 = s.expiring90 || 0;
+        const expired = s.expired || 0;
+
+        statsEl.innerHTML = `
+            <div class="stat-card stat-card--expired">
+                <div class="stat-card__num">${expired}</div>
+                <div class="stat-card__label">已过期</div>
+            </div>
+            <div class="stat-card stat-card--urgent">
+                <div class="stat-card__num">${expiring90}</div>
+                <div class="stat-card__label">90天临期</div>
+            </div>
+            <div class="stat-card stat-card--warning">
+                <div class="stat-card__num">${totalCount}</div>
+                <div class="stat-card__label">在库总数</div>
+            </div>
+        `;
+    },
+
+    // 渲染品类卡片网格
+    renderCategoryGrid() {
+        const container = document.getElementById('makeup-category-filter');
+        if (!container) return;
+
+        const categoryCount = {};
+        let totalCount = 0;
+        this.list.forEach(item => {
+            const cat = item.category || '其他';
+            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+            totalCount++;
+        });
+
+        const categories = Object.keys(categoryCount).sort((a, b) => categoryCount[b] - categoryCount[a]);
+
+        const allCard = `
+            <div class="category-grid-card ${this.currentFilter === 'all' ? 'active' : ''}" data-category="all">
+                <div class="category-grid-card__count">${totalCount}</div>
+                <div class="category-grid-card__name">全部</div>
+            </div>
+        `;
+
+        const categoryCards = categories.map(cat => `
+            <div class="category-grid-card ${this.currentFilter === cat ? 'active' : ''}" data-category="${Utils.escapeHtml(cat)}">
+                <div class="category-grid-card__count">${categoryCount[cat]}</div>
+                <div class="category-grid-card__name">${Utils.escapeHtml(cat)}</div>
+            </div>
+        `).join('');
+
+        container.innerHTML = `<div class="category-grid">${allCard}${categoryCards}</div>`;
+    },
+
+    // 切换 Tab
+    switchTab(tab) {
+        this.currentTab = tab;
+        this.searchQuery = '';
+        const searchInput = document.getElementById('makeup-search');
+        if (searchInput) searchInput.value = '';
+
+        document.querySelectorAll('[data-makeup-tab]').forEach(t => {
+            t.classList.toggle('active', t.dataset.makeupTab === tab);
+        });
+
+        this.loadData();
+    },
+
+    // 搜索
+    search(value) {
+        this.searchQuery = value;
+        this.loadData();
+    },
+
+    async loadData() {
+        const params = {};
+        if (this.currentTab === 'archive') {
+            params.archived = true;
+        } else {
+            params.archived = false;
+        }
+        if (this.searchQuery) {
+            params.search = this.searchQuery;
+        }
+
+        const res = await API.getMakeup(params);
+        if (res.success) {
+            this.list = res.data || [];
+            this.renderCategoryGrid();
+            this.renderList();
+        } else {
+            console.error('加载彩妆列表失败:', res.message);
+        }
+    },
+
+    // 渲染列表
+    renderList() {
+        const listEl = document.getElementById('makeup-list');
+        if (!listEl) return;
+
+        let filtered = this.list;
+        if (this.currentFilter !== 'all') {
+            filtered = filtered.filter(item => (item.category || '其他') === this.currentFilter);
+        }
+
+        if (filtered.length === 0) {
+            listEl.innerHTML = `
+                <div class="empty-tip">
+                    <div class="empty-tip__icon">
+                        <svg><use href="#icon-sunglasses"/></svg>
+                    </div>
+                    <p class="empty-tip__text">彩妆台空空如也</p>
+                    <p class="empty-tip__sub">帮你记录每一件彩妆</p>
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = filtered.map((item, index) => {
+            const statusType = this.getStatusType(item);
+            const days = this.getExpiryDays(item);
+            const expiryText = days === null ? '' :
+                days < 0 ? `已过期${Math.abs(days)}天` : `还剩${days}天`;
+            const expiryClass = days === null ? 'normal' :
+                days < 0 ? 'expired' : days <= 30 ? 'urgent' : 'normal';
+            const remaining = item.remaining !== undefined && item.remaining !== null ? item.remaining : 100;
+
+            return `
+                <div class="item-card item-card--${statusType} fade-in" style="animation-delay: ${index * 0.03}s;" data-id="${item.id}">
+                    <div class="item-card__icon">
+                        <svg><use href="#icon-sunglasses"/></svg>
+                    </div>
+                    <div class="item-card__name">${Utils.escapeHtml(item.name || '未命名')}</div>
+                    <div class="item-card__brand">${Utils.escapeHtml(item.brand || item.shade || '')}</div>
+                    <div class="item-card__progress">
+                        <div class="item-card__progress-fill" style="width: ${remaining}%"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <span class="item-card__expiry-tag item-card__expiry-tag--${expiryClass}">${expiryText || '未设期限'}</span>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="item-card__btn" onclick="Makeup.editItem('${item.id}')" title="编辑">
+                                <svg width="14" height="14"><use href="#icon-edit"/></svg>
+                            </button>
+                            <button class="item-card__btn item-card__btn--delete" onclick="Makeup.deleteItem('${item.id}')" title="删除">
+                                <svg width="14" height="14"><use href="#icon-delete"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    // 显示新增表单
+    showForm(id = null, preset = null) {
+        const isEdit = !!id;
+        const item = isEdit ? this.list.find(i => i.id === id) : null;
+        const data = item || preset || {};
+
+        const categoryOptions = this.categories.map(cat =>
+            `<option value="${cat}" ${(data.category === cat) ? 'selected' : ''}>${cat}</option>`
+        ).join('');
+
+        const content = `
+            <form id="makeup-form" class="modal-form">
+                <input type="hidden" id="makeup-id" value="${id || ''}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>名称 *</label>
+                        <input type="text" id="makeup-name" value="${data.name || ''}" placeholder="如：迪奥999">
+                    </div>
+                    <div class="form-group">
+                        <label>分类</label>
+                        <select id="makeup-category">${categoryOptions}</select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>品牌</label>
+                        <input type="text" id="makeup-brand" value="${data.brand || ''}" placeholder="品牌名称">
+                    </div>
+                    <div class="form-group">
+                        <label>色号</label>
+                        <input type="text" id="makeup-shade" value="${data.shade || ''}" placeholder="如：#999">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>价格 (元)</label>
+                        <input type="number" id="makeup-price" value="${data.price || ''}" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>余量 (%)</label>
+                        <input type="number" id="makeup-remaining" value="${data.remaining !== undefined ? data.remaining : 100}" min="0" max="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>开封日期</label>
+                        <input type="date" id="makeup-open-date" value="${data.openDate || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>保质期 (月)</label>
+                        <input type="number" id="makeup-shelf-life" value="${data.shelfLifeMonths || ''}" placeholder="如：12">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>到期日期</label>
+                    <input type="date" id="makeup-expiry-date" value="${data.expiryDate || ''}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>回购意愿</label>
+                        <select id="makeup-repurchase">
+                            <option value="" ${!data.repurchase ? 'selected' : ''}>未选择</option>
+                            <option value="一定会" ${data.repurchase === '一定会' ? 'selected' : ''}>一定会回购</option>
+                            <option value="可能会" ${data.repurchase === '可能会' ? 'selected' : ''}>可能会回购</option>
+                            <option value="不会" ${data.repurchase === '不会' ? 'selected' : ''}>不会回购</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>使用感受</label>
+                    <textarea id="makeup-notes" rows="3" placeholder="记录使用感受...">${data.notes || ''}</textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="Modal.close()">取消</button>
+                    <button type="submit" class="btn btn-primary">${isEdit ? '保存' : '添加'}</button>
+                </div>
+            </form>
+        `;
+
+        Modal.open(isEdit ? '编辑彩妆' : '添加彩妆', content);
+
+        const form = document.getElementById('makeup-form');
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveItem();
+        });
+    },
+
+    // 编辑
+    editItem(id) {
+        this.showForm(id);
+    },
+
+    // 删除
+    async deleteItem(id) {
+        if (!confirm('确定要删除这条记录吗？')) return;
+        const res = await API.deleteMakeup(id);
+        if (res.success) {
+            Toast.success('已删除');
+            this.loadData();
+            this.loadSummary();
+            Dashboard.loadData();
+        } else {
+            Toast.error(res.message || '删除失败');
+        }
+    },
+
+    // 保存
+    async saveItem() {
+        const id = document.getElementById('makeup-id').value;
+        const data = {
+            name: document.getElementById('makeup-name').value.trim(),
+            category: document.getElementById('makeup-category').value,
+            brand: document.getElementById('makeup-brand').value.trim(),
+            shade: document.getElementById('makeup-shade').value.trim(),
+            price: parseFloat(document.getElementById('makeup-price').value) || null,
+            remaining: parseInt(document.getElementById('makeup-remaining').value) || 0,
+            openDate: document.getElementById('makeup-open-date').value || null,
+            shelfLifeMonths: parseInt(document.getElementById('makeup-shelf-life').value) || null,
+            expiryDate: document.getElementById('makeup-expiry-date').value || null,
+            repurchase: document.getElementById('makeup-repurchase').value,
+            notes: document.getElementById('makeup-notes').value.trim()
+        };
+
+        if (!data.name) {
+            Toast.warning('请输入名称');
+            return;
+        }
+
+        let res;
+        if (id) {
+            res = await API.updateMakeup(id, data);
+        } else {
+            res = await API.addMakeup(data);
+        }
+
+        if (res.success) {
+            Toast.success(id ? '已保存' : '添加成功');
+            Modal.close();
+            this.loadData();
+            this.loadSummary();
+            Dashboard.loadData();
+        } else {
+            Toast.error(res.message || '保存失败');
+        }
+    }
+};
+
 // ===== 应用初始化 =====
 document.addEventListener('DOMContentLoaded', () => {
     VoiceRecognition.init();
@@ -4732,6 +5564,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Skincare.init();
     Fridge.init();
     Household.init();
+    Makeup.init();
     Diary.init();
     Health.init();
     Onboarding.init();

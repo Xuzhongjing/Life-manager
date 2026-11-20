@@ -147,6 +147,31 @@ function initDatabase() {
     )
   `);
 
+  // 彩妆表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS makeup (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT DEFAULT '口红',
+      brand TEXT,
+      price REAL,
+      color TEXT,
+      open_date TEXT,
+      shelf_life_months INTEGER,
+      expiry_date TEXT,
+      remaining_amount TEXT,
+      repurchase TEXT,
+      season TEXT,
+      skin_type TEXT,
+      notes TEXT,
+      archived INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
   // 用户自定义分类表
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_categories (
@@ -202,6 +227,17 @@ function migrateDatabase() {
       let type = 'REAL';
       if (col === 'archived' || col === 'processed') type = 'INTEGER DEFAULT 0';
       db.exec(`ALTER TABLE food ADD COLUMN ${col} ${type}`);
+    } catch (e) { /* 字段已存在，忽略 */ }
+  });
+
+  // makeup 表新增字段（用于已存在的旧表补充）
+  const makeupColumns = ['color', 'repurchase', 'archived', 'updated_at'];
+  makeupColumns.forEach(col => {
+    try {
+      let type = 'TEXT';
+      if (col === 'archived') type = 'INTEGER DEFAULT 0';
+      if (col === 'updated_at') type = "TEXT DEFAULT (datetime('now', 'localtime'))";
+      db.exec(`ALTER TABLE makeup ADD COLUMN ${col} ${type}`);
     } catch (e) { /* 字段已存在，忽略 */ }
   });
 
@@ -262,6 +298,18 @@ const DEFAULT_CATEGORIES = {
     { name: '家居清洁', sort_order: 4 },
     { name: '数码配件', sort_order: 5 },
     { name: '其他', sort_order: 99 }
+  ],
+  makeup: [
+    { name: '口红', sort_order: 1 },
+    { name: '粉底', sort_order: 2 },
+    { name: '眼影', sort_order: 3 },
+    { name: '腮红', sort_order: 4 },
+    { name: '睫毛膏', sort_order: 5 },
+    { name: '眉笔', sort_order: 6 },
+    { name: '高光', sort_order: 7 },
+    { name: '遮瑕', sort_order: 8 },
+    { name: '散粉', sort_order: 9 },
+    { name: '其他', sort_order: 99 }
   ]
 };
 
@@ -269,7 +317,8 @@ const DEFAULT_CATEGORIES = {
 const MODULE_TABLE_MAP = {
   skincare: 'skincare',
   food: 'food',
-  household: 'household_items'
+  household: 'household_items',
+  makeup: 'makeup'
 };
 
 // ==================== 工具函数 ====================
@@ -593,12 +642,12 @@ app.delete('/api/skincare/:id', authenticateToken, (req, res) => {
 
 /**
  * 获取食材列表
- * GET /api/food?archived=0&search=xxx
+ * GET /api/food?archived=0&search=xxx&category=xxx
  */
 app.get('/api/food', authenticateToken, (req, res) => {
   try {
     const userId = req.user.id;
-    const { archived, search } = req.query;
+    const { archived, search, category } = req.query;
 
     let query = 'SELECT * FROM food WHERE user_id = ?';
     const params = [userId];
@@ -613,12 +662,48 @@ app.get('/api/food', authenticateToken, (req, res) => {
       params.push(`%${search}%`);
     }
 
+    if (category) {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+
     query += ' ORDER BY expiry_date ASC, created_at DESC';
 
     const items = db.prepare(query).all(...params);
     res.json(items);
   } catch (err) {
     console.error('获取食材列表失败:', err);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * 切换食材归档状态
+ * POST /api/food/:id/archive
+ */
+app.post('/api/food/:id/archive', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const itemId = req.params.id;
+
+    const existing = db.prepare(
+      'SELECT id, archived FROM food WHERE id = ? AND user_id = ?'
+    ).get(itemId, userId);
+
+    if (!existing) {
+      return res.status(404).json({ error: '食材记录不存在' });
+    }
+
+    const newArchived = existing.archived ? 0 : 1;
+    db.prepare('UPDATE food SET archived = ? WHERE id = ? AND user_id = ?').run(newArchived, itemId, userId);
+
+    const updatedItem = db.prepare(
+      'SELECT * FROM food WHERE id = ? AND user_id = ?'
+    ).get(itemId, userId);
+
+    res.json(updatedItem);
+  } catch (err) {
+    console.error('切换食材归档状态失败:', err);
     res.status(500).json({ error: '服务器内部错误' });
   }
 });
@@ -774,6 +859,256 @@ app.delete('/api/food/:id', authenticateToken, (req, res) => {
     res.json({ message: '删除成功' });
   } catch (err) {
     console.error('删除食材失败:', err);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+// ==================== 彩妆 CRUD 接口 ====================
+
+/**
+ * 获取彩妆列表
+ * GET /api/makeup?archived=0&search=xxx&category=xxx
+ */
+app.get('/api/makeup', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { archived, search, category } = req.query;
+
+    let query = 'SELECT * FROM makeup WHERE user_id = ?';
+    const params = [userId];
+
+    if (archived !== undefined) {
+      query += ' AND archived = ?';
+      params.push(archived === '1' ? 1 : 0);
+    }
+
+    if (search) {
+      query += ' AND (name LIKE ? OR brand LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    if (category) {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    const items = db.prepare(query).all(...params);
+    res.json(items);
+  } catch (err) {
+    console.error('获取彩妆列表失败:', err);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * 获取彩妆统计
+ * GET /api/makeup/summary
+ * 返回：总数、90天临期、总价值、分类数
+ */
+app.get('/api/makeup/summary', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const items = db.prepare(
+      "SELECT * FROM makeup WHERE user_id = ? AND archived = 0"
+    ).all(userId);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let expiring90 = 0;
+    let totalValue = 0;
+    const categoryStats = {};
+
+    items.forEach(item => {
+      // 临期计算：优先用 expiry_date，其次用 open_date + shelf_life_months
+      let expDate = null;
+      if (item.expiry_date) {
+        expDate = new Date(item.expiry_date + 'T23:59:59');
+      } else if (item.open_date && item.shelf_life_months) {
+        expDate = new Date(item.open_date);
+        expDate.setMonth(expDate.getMonth() + item.shelf_life_months);
+      }
+      if (expDate) {
+        const days = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+        if (days >= 0 && days <= 90) expiring90++;
+      }
+
+      if (item.price) totalValue += item.price;
+
+      const cat = item.category || '未分类';
+      if (!categoryStats[cat]) categoryStats[cat] = 0;
+      categoryStats[cat]++;
+    });
+
+    const categoryCount = Object.keys(categoryStats).length;
+
+    res.json({
+      total: items.length,
+      expiring_90: expiring90,
+      total_value: Math.round(totalValue * 100) / 100,
+      category_count: categoryCount,
+      category_stats: categoryStats
+    });
+  } catch (err) {
+    console.error('获取彩妆统计失败:', err);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * 获取单条彩妆
+ * GET /api/makeup/:id
+ */
+app.get('/api/makeup/:id', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const itemId = req.params.id;
+    const item = db.prepare(
+      'SELECT * FROM makeup WHERE id = ? AND user_id = ?'
+    ).get(itemId, userId);
+
+    if (!item) {
+      return res.status(404).json({ error: '彩妆记录不存在' });
+    }
+    res.json(item);
+  } catch (err) {
+    console.error('获取彩妆失败:', err);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * 新增彩妆
+ * POST /api/makeup
+ * Body: { name, category, brand, price, color, open_date, shelf_life_months, expiry_date, remaining_amount, repurchase, season, skin_type, notes }
+ */
+app.post('/api/makeup', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, category, brand, price, color, open_date, shelf_life_months, expiry_date, remaining_amount, repurchase, season, skin_type, notes } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: '彩妆名称不能为空' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO makeup (user_id, name, category, brand, price, color, open_date, shelf_life_months, expiry_date, remaining_amount, repurchase, season, skin_type, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, name, category || '口红', brand || null, price || null,
+           color || null, open_date || null, shelf_life_months || null,
+           expiry_date || null, remaining_amount || null,
+           repurchase || null, season || null, skin_type || null, notes || null);
+
+    const newItem = db.prepare(
+      'SELECT * FROM makeup WHERE id = ? AND user_id = ?'
+    ).get(result.lastInsertRowid, userId);
+
+    res.status(201).json(newItem);
+  } catch (err) {
+    console.error('新增彩妆失败:', err);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * 更新彩妆
+ * PUT /api/makeup/:id
+ */
+app.put('/api/makeup/:id', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const itemId = req.params.id;
+    const { name, category, brand, price, color, open_date, shelf_life_months, expiry_date, remaining_amount, repurchase, season, skin_type, notes, archived } = req.body;
+
+    const existing = db.prepare(
+      'SELECT id FROM makeup WHERE id = ? AND user_id = ?'
+    ).get(itemId, userId);
+
+    if (!existing) {
+      return res.status(404).json({ error: '彩妆记录不存在' });
+    }
+
+    db.prepare(`
+      UPDATE makeup
+      SET name = ?, category = ?, brand = ?, price = ?, color = ?,
+          open_date = ?, shelf_life_months = ?, expiry_date = ?,
+          remaining_amount = ?, repurchase = ?, season = ?,
+          skin_type = ?, notes = ?, archived = COALESCE(?, archived),
+          updated_at = datetime('now', 'localtime')
+      WHERE id = ? AND user_id = ?
+    `).run(name, category || null, brand || null, price || null, color || null,
+           open_date || null, shelf_life_months || null, expiry_date || null,
+           remaining_amount || null, repurchase || null, season || null,
+           skin_type || null, notes || null, archived !== undefined ? archived : null,
+           itemId, userId);
+
+    const updatedItem = db.prepare(
+      'SELECT * FROM makeup WHERE id = ? AND user_id = ?'
+    ).get(itemId, userId);
+
+    res.json(updatedItem);
+  } catch (err) {
+    console.error('更新彩妆失败:', err);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * 删除彩妆
+ * DELETE /api/makeup/:id
+ */
+app.delete('/api/makeup/:id', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const itemId = req.params.id;
+
+    const result = db.prepare(
+      'DELETE FROM makeup WHERE id = ? AND user_id = ?'
+    ).run(itemId, userId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: '彩妆记录不存在' });
+    }
+
+    res.json({ message: '删除成功' });
+  } catch (err) {
+    console.error('删除彩妆失败:', err);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * 切换彩妆归档状态
+ * POST /api/makeup/:id/archive
+ */
+app.post('/api/makeup/:id/archive', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const itemId = req.params.id;
+
+    const existing = db.prepare(
+      'SELECT id, archived FROM makeup WHERE id = ? AND user_id = ?'
+    ).get(itemId, userId);
+
+    if (!existing) {
+      return res.status(404).json({ error: '彩妆记录不存在' });
+    }
+
+    const newArchived = existing.archived ? 0 : 1;
+    db.prepare(
+      'UPDATE makeup SET archived = ?, updated_at = datetime(\'now\', \'localtime\') WHERE id = ? AND user_id = ?'
+    ).run(newArchived, itemId, userId);
+
+    const updatedItem = db.prepare(
+      'SELECT * FROM makeup WHERE id = ? AND user_id = ?'
+    ).get(itemId, userId);
+
+    res.json(updatedItem);
+  } catch (err) {
+    console.error('切换彩妆归档状态失败:', err);
     res.status(500).json({ error: '服务器内部错误' });
   }
 });
@@ -1438,6 +1773,11 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
       'SELECT COUNT(*) as count FROM household_items WHERE user_id = ?'
     ).get(userId).count;
 
+    // 彩妆总数
+    const makeupCount = db.prepare(
+      'SELECT COUNT(*) as count FROM makeup WHERE user_id = ?'
+    ).get(userId).count;
+
     // 本月日记数
     const diaryMonthCount = db.prepare(`
       SELECT COUNT(*) as count FROM diary
@@ -1486,8 +1826,22 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
       LIMIT 10
     `).all(userId);
 
-    // 临期预警总数（护肤品+食材+生活用品）
-    const expiringSoonCount = expiringSkincare.length + expiringFood.length + expiringHousehold.length;
+    // 临期彩妆（90天内过期或已过期）
+    const expiringMakeup = db.prepare(`
+      SELECT *,
+        julianday(expiry_date) - julianday('now') as days_remaining
+      FROM makeup
+      WHERE user_id = ?
+        AND archived = 0
+        AND expiry_date IS NOT NULL
+        AND expiry_date != ''
+        AND julianday(expiry_date) - julianday('now') <= 90
+      ORDER BY days_remaining ASC
+      LIMIT 10
+    `).all(userId);
+
+    // 临期预警总数（护肤品+食材+生活用品+彩妆）
+    const expiringSoonCount = expiringSkincare.length + expiringFood.length + expiringHousehold.length + expiringMakeup.length;
 
     // 护肤品总价值（skincare 没有 price 字段，暂为 0）
     const skincareValue = 0;
@@ -1505,8 +1859,17 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
     `).get(userId);
     const householdValue = householdValueRow.total_value || 0;
 
+    // 彩妆总价值
+    const makeupValueRow = db.prepare(`
+      SELECT COALESCE(SUM(price), 0) as total_value
+      FROM makeup
+      WHERE user_id = ?
+        AND price IS NOT NULL
+    `).get(userId);
+    const makeupValue = makeupValueRow.total_value || 0;
+
     // 所有库存总价值
-    const totalValue = skincareValue + foodValue + householdValue;
+    const totalValue = skincareValue + foodValue + householdValue + makeupValue;
 
     // 各分类统计
     // 护肤品分类占比
@@ -1536,6 +1899,15 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
       ORDER BY count DESC
     `).all(userId);
 
+    // 彩妆分类占比
+    const makeupCategoryStats = db.prepare(`
+      SELECT category, COUNT(*) as count
+      FROM makeup
+      WHERE user_id = ? AND category IS NOT NULL
+      GROUP BY category
+      ORDER BY count DESC
+    `).all(userId);
+
     // 本月新增物品数（护肤品+食材+生活用品）
     const newSkincareMonth = db.prepare(`
       SELECT COUNT(*) as count FROM skincare
@@ -1555,7 +1927,13 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
         AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
     `).get(userId).count;
 
-    const newItemsMonth = newSkincareMonth + newFoodMonth + newHouseholdMonth;
+    const newMakeupMonth = db.prepare(`
+      SELECT COUNT(*) as count FROM makeup
+      WHERE user_id = ?
+        AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+    `).get(userId).count;
+
+    const newItemsMonth = newSkincareMonth + newFoodMonth + newHouseholdMonth + newMakeupMonth;
 
     // 本月已过期物品数（作为消耗的近似）
     const expiredSkincareMonth = db.prepare(`
@@ -1583,7 +1961,15 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
         AND strftime('%Y-%m', expiry_date) = strftime('%Y-%m', 'now')
     `).get(userId).count;
 
-    const expiredItemsMonth = expiredSkincareMonth + expiredFoodMonth + expiredHouseholdMonth;
+    const expiredMakeupMonth = db.prepare(`
+      SELECT COUNT(*) as count FROM makeup
+      WHERE user_id = ?
+        AND expiry_date IS NOT NULL AND expiry_date != ''
+        AND julianday(expiry_date) < julianday('now')
+        AND strftime('%Y-%m', expiry_date) = strftime('%Y-%m', 'now')
+    `).get(userId).count;
+
+    const expiredItemsMonth = expiredSkincareMonth + expiredFoodMonth + expiredHouseholdMonth + expiredMakeupMonth;
 
     // 最近7天活动记录（日记+新增物品合计，按天统计）
     const sevenDayTrend = [];
@@ -1610,11 +1996,16 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
         WHERE user_id = ? AND date(created_at) = ?
       `).get(userId, dateStr).count;
 
+      const makeupCountDaily = db.prepare(`
+        SELECT COUNT(*) as count FROM makeup
+        WHERE user_id = ? AND date(created_at) = ?
+      `).get(userId, dateStr).count;
+
       sevenDayTrend.push({
         date: dateStr,
         diary: diaryCount,
-        new_items: skincareCount + foodCount + householdCount,
-        total: diaryCount + skincareCount + foodCount + householdCount
+        new_items: skincareCount + foodCount + householdCount + makeupCountDaily,
+        total: diaryCount + skincareCount + foodCount + householdCount + makeupCountDaily
       });
     }
 
@@ -1655,23 +2046,36 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
         )
     `).get(userId).count;
 
+    // ===== 彩妆临期汇总（90天内临期数量） =====
+    const makeupExpiring90 = db.prepare(`
+      SELECT COUNT(*) as count FROM makeup
+      WHERE user_id = ? AND archived = 0
+        AND expiry_date IS NOT NULL AND expiry_date != ''
+        AND julianday(expiry_date) - julianday('now') <= 90
+        AND julianday(expiry_date) - julianday('now') >= 0
+    `).get(userId).count;
+
     res.json({
       skincare_count: skincareCount,
       food_count: foodCount,
       household_count: householdCount,
+      makeup_count: makeupCount,
       expiring_soon_count: expiringSoonCount,
       diary_month_count: diaryMonthCount,
       expiring_skincare: expiringSkincare,
       expiring_food: expiringFood,
       expiring_household: expiringHousehold,
+      expiring_makeup: expiringMakeup,
       skincare_value: skincareValue,
       food_value: foodValue,
       household_value: householdValue,
+      makeup_value: makeupValue,
       total_value: totalValue,
       category_stats: {
         skincare: skincareCategoryStats,
         food: foodCategoryStats,
-        household: householdCategoryStats
+        household: householdCategoryStats,
+        makeup: makeupCategoryStats
       },
       new_items_month: newItemsMonth,
       expired_items_month: expiredItemsMonth,
@@ -1685,6 +2089,9 @@ app.get('/api/dashboard', authenticateToken, (req, res) => {
       },
       skincare_summary: {
         expiring_90: skincareExpiring90
+      },
+      makeup_summary: {
+        expiring_90: makeupExpiring90
       }
     });
   } catch (err) {
@@ -1707,10 +2114,11 @@ app.post('/api/demo/seed', authenticateToken, (req, res) => {
     // 检查是否已有数据
     const skincareCount = db.prepare('SELECT COUNT(*) as count FROM skincare WHERE user_id = ?').get(userId).count;
     const foodCount = db.prepare('SELECT COUNT(*) as count FROM food WHERE user_id = ?').get(userId).count;
+    const makeupCount = db.prepare('SELECT COUNT(*) as count FROM makeup WHERE user_id = ?').get(userId).count;
     const householdCount = db.prepare('SELECT COUNT(*) as count FROM household_items WHERE user_id = ?').get(userId).count;
     const healthCount = db.prepare('SELECT COUNT(*) as count FROM health_records WHERE user_id = ?').get(userId).count;
 
-    if (skincareCount > 0 || foodCount > 0 || householdCount > 0 || healthCount > 0) {
+    if (skincareCount > 0 || foodCount > 0 || makeupCount > 0 || householdCount > 0 || healthCount > 0) {
       return res.json({ message: '已有数据', seeded: false });
     }
 
@@ -1793,6 +2201,37 @@ app.post('/api/demo/seed', authenticateToken, (req, res) => {
         item.quantity, item.unit, item.storage_location, item.price, item.notes);
     });
 
+    // ===== 彩妆：6件 =====
+    const makeupItems = [
+      { name: '烈艳蓝金唇膏999', category: '口红', brand: '迪奥', price: 350, color: '正红色', open_date: minusDays(20), shelf_life_months: 12, remaining_amount: '80%', repurchase: '会回购', season: '四季', skin_type: '混合', notes: '经典正红' },
+      { name: '恒颜无瑕粉底液', category: '粉底', brand: 'YSL', price: 580, color: 'B20', open_date: minusDays(30), shelf_life_months: 12, remaining_amount: '70%', repurchase: '会回购', season: '四季', skin_type: '混合', notes: '持妆效果好' },
+      { name: '九色眼影盘', category: '眼影', brand: 'MAC', price: 420, color: '大地色', open_date: minusDays(15), shelf_life_months: 12, remaining_amount: '85%', repurchase: '考虑中', season: '秋冬', skin_type: '混合', notes: '日常百搭' },
+      { name: '炫色腮红', category: '腮红', brand: 'NARS', price: 300, color: 'Orgasm', open_date: minusDays(45), shelf_life_months: 12, remaining_amount: '60%', repurchase: '会回购', season: '四季', skin_type: '混合', notes: '网红色号' },
+      { name: '三角眉笔', category: '眉笔', brand: '花西子', price: 79, color: '深棕', open_date: null, shelf_life_months: 18, remaining_amount: '100%', repurchase: null, season: null, skin_type: null, notes: '未开封' },
+      { name: '空气蜜粉散粉', category: '散粉', brand: '花西子', price: 169, color: '透明', open_date: minusDays(60), shelf_life_months: 12, remaining_amount: '50%', repurchase: '会回购', season: '四季', skin_type: '混合', notes: '定妆持久' }
+    ];
+
+    const makeupStmt = db.prepare(`
+      INSERT INTO makeup (user_id, name, category, brand, price, color, open_date, shelf_life_months, expiry_date, remaining_amount, repurchase, season, skin_type, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    makeupItems.forEach(item => {
+      let expiryDate = null;
+      if (item.open_date && item.shelf_life_months) {
+        const expDate = new Date(item.open_date);
+        expDate.setMonth(expDate.getMonth() + item.shelf_life_months);
+        expiryDate = formatDate(expDate);
+      } else if (item.shelf_life_months) {
+        // 未开封，按购买日期+保质期计算（这里用今天+保质期近似）
+        const expDate = new Date(today);
+        expDate.setMonth(expDate.getMonth() + item.shelf_life_months);
+        expiryDate = formatDate(expDate);
+      }
+      makeupStmt.run(userId, item.name, item.category, item.brand, item.price,
+        item.color, item.open_date, item.shelf_life_months, expiryDate,
+        item.remaining_amount, item.repurchase, item.season, item.skin_type, item.notes);
+    });
+
     // ===== 健康记录：最近7天 =====
     const healthRecords = [
       { record_date: minusDays(6), weather: '晴', feeling: '良好', fasting_glucose: 5.2, postprandial_glucose: null, weight: 52.5, menstrual_status: null, mood_notes: '精神不错' },
@@ -1820,6 +2259,7 @@ app.post('/api/demo/seed', authenticateToken, (req, res) => {
       stats: {
         skincare: skincareItems.length,
         food: foodItems.length,
+        makeup: makeupItems.length,
         household: householdItems.length,
         health: healthRecords.length
       }
@@ -1912,6 +2352,7 @@ async function startServer() {
       console.log(`  GET/PUT /api/month-reminder - 本月提醒（需登录）`);
       console.log(`  GET/POST/PUT/DELETE /api/skincare  - 护肤品管理（需登录）`);
       console.log(`  GET/POST/PUT/DELETE /api/food      - 食材管理（需登录）`);
+      console.log(`  GET/POST/PUT/DELETE /api/makeup    - 彩妆管理（需登录）`);
       console.log(`  GET/POST/PUT/DELETE /api/household - 生活用品管理（需登录）`);
       console.log(`  GET/POST/PUT/DELETE /api/diary     - 日记管理（需登录）`);
       console.log(`  GET/POST/DELETE    /api/categories - 自定义分类（需登录）`);

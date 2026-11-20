@@ -544,77 +544,71 @@
     <!-- ===== 应用主页面（登录后显示） ===== -->
     <div id="app-page" class="app-container hidden">
 
-        <!-- 左侧边栏 -->
-        <nav class="navbar">
-            <div class="nav-brand">
-                <svg class="nav-brand__icon"><use href="#icon-logo"/></svg>
-                <span class="nav-brand__text">随序</span>
+        <!-- 顶部导航栏 -->
+        <header class="topbar">
+            <div class="topbar__left">
+                <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="菜单">
+                    <svg><use href="#icon-list"/></svg>
+                </button>
+                <div class="topbar__logo">
+                    <svg class="topbar__logo-icon"><use href="#icon-logo"/></svg>
+                    <span>随序</span>
+                </div>
             </div>
+            <div class="topbar__right">
+                <span id="topbar-date" class="topbar__date"></span>
+                <div class="topbar__user">
+                    <div class="topbar__user-avatar">
+                        <svg><use href="#icon-user"/></svg>
+                    </div>
+                    <span id="topbar-username" class="topbar__user-name"></span>
+                </div>
+                <button id="btn-logout-top" class="topbar__logout-btn">
+                    <svg width="14" height="14"><use href="#icon-logout"/></svg>
+                    退出
+                </button>
+            </div>
+        </header>
 
-            <button id="nav-toggle" class="nav-toggle" aria-label="菜单">
-                <svg class="nav-toggle__icon"><use href="#icon-list"/></svg>
-            </button>
-
+        <!-- 左侧边栏 -->
+        <nav class="navbar" id="sidebar">
             <div class="nav-menu">
                 <button class="nav-item active" data-module="dashboard">
                     <svg class="nav-item__icon"><use href="#icon-home"/></svg>
-                    <span>看板</span>
+                    <span>桌面</span>
                 </button>
-                <div class="nav-divider"></div>
-                <div class="nav-group-label">物品管理</div>
-                <button class="nav-item" data-module="skincare">
-                    <svg class="nav-item__icon"><use href="#icon-skincare"/></svg>
-                    <span>护肤品</span>
+                <button class="nav-item" data-module="health">
+                    <svg class="nav-item__icon"><use href="#icon-heart"/></svg>
+                    <span>健康管理</span>
                 </button>
                 <button class="nav-item" data-module="fridge">
                     <svg class="nav-item__icon"><use href="#icon-fridge"/></svg>
-                    <span>冰箱食材</span>
+                    <span>冰箱库存</span>
+                </button>
+                <button class="nav-item" data-module="skincare">
+                    <svg class="nav-item__icon"><use href="#icon-skincare"/></svg>
+                    <span>皮肤管理</span>
+                </button>
+                <button class="nav-item" data-module="makeup">
+                    <svg class="nav-item__icon"><use href="#icon-sunglasses"/></svg>
+                    <span>彩妆管理</span>
                 </button>
                 <button class="nav-item" data-module="household">
                     <svg class="nav-item__icon"><use href="#icon-house"/></svg>
                     <span>生活用品</span>
                 </button>
-                <div class="nav-divider"></div>
-                <div class="nav-group-label">记录</div>
-                <button class="nav-item" data-module="health">
-                    <svg class="nav-item__icon"><use href="#icon-heart"/></svg>
-                    <span>健康管理</span>
-                </button>
-            </div>
-
-            <div class="nav-sidebar-footer">
-                <div class="nav-user">
-                    <div class="nav-user__avatar">
-                        <svg class="nav-user__icon"><use href="#icon-user"/></svg>
-                    </div>
-                    <div class="nav-user__info">
-                        <span id="nav-username" class="nav-user__name"></span>
-                    </div>
-                    <button id="btn-logout" class="btn-logout">
-                        <svg class="btn-logout__icon"><use href="#icon-logout"/></svg>
-                    </button>
-                </div>
-                <div class="nav-brand-bottom">
-                    <div class="nav-brand-bottom__name">随序</div>
-                    <div class="nav-brand-bottom__slogan">随心有序</div>
-                </div>
             </div>
         </nav>
 
         <!-- 主内容区 -->
         <main class="main-content">
 
-            <!-- 总看板模块 -->
+            <!-- 总看板模块（工作台桌面） -->
             <section id="module-dashboard" class="module">
-                <!-- 产品定位头部 -->
-                <div class="dashboard-header">
-                    <div class="dashboard-header__left">
-                        <div class="dashboard-header__brand">随序 · 生活总览</div>
-                        <div class="dashboard-header__subtitle">你的生活总览，重要事项一目了然</div>
-                    </div>
-                    <div class="dashboard-header__right">
-                        <div id="dashboard-today-date" class="dashboard-header__date"></div>
-                    </div>
+                <!-- 日期问候语 -->
+                <div class="desk-greeting">
+                    <div id="desk-greeting-date" class="desk-greeting__date"></div>
+                    <div class="desk-greeting__slogan">觉察即收获</div>
                 </div>
 
                 <!-- 示例数据横幅 -->
@@ -623,7 +617,7 @@
                     <button id="demo-seed-btn" class="demo-banner__btn">导入示例</button>
                 </div>
 
-                <!-- 看板内容由 JS 动态渲染 -->
+                <!-- 桌面内容由 JS 动态渲染 -->
                 <div id="dashboard-content"></div>
             </section>
 
@@ -631,12 +625,24 @@
             <section id="module-skincare" class="module hidden">
                 <div class="module-header">
                     <div class="module-header__left">
-                        <h2 class="module-title">
-                            <svg class="module-title__icon"><use href="#icon-skincare"/></svg>
-                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
-                            护肤品管理
-                        </h2>
+                        <h2 class="module-title">皮肤管理</h2>
                         <p class="page-subtitle">记录你的护肤品库存，临期自动提醒</p>
+                    </div>
+                </div>
+
+                <!-- 搜索栏 -->
+                <div class="search-bar">
+                    <input type="text" id="skincare-search" placeholder="搜索护肤品..." class="search-bar__input">
+                </div>
+
+                <!-- 状态统计卡 -->
+                <div id="skincare-stats" class="stats-row"></div>
+
+                <!-- Tab切换 + 新增按钮 -->
+                <div class="tab-action-row">
+                    <div class="tab-pill-group">
+                        <button class="tab-pill active" data-skincare-tab="active">在库</button>
+                        <button class="tab-pill" data-skincare-tab="archive">历史归档</button>
                     </div>
                     <button id="btn-add-skincare" class="btn btn-primary">
                         <svg class="btn__icon"><use href="#icon-plus"/></svg>
@@ -644,39 +650,18 @@
                     </button>
                 </div>
 
-                <!-- 快速添加 -->
-                <div class="quick-add">
-                    <div class="quick-add__label">
-                        <svg class="quick-add__icon"><use href="#icon-flash"/></svg>
-                        快速添加
-                    </div>
-                    <div id="skincare-quick-tags" class="quick-tags"></div>
-                </div>
-
-                <!-- 统计卡片 -->
-                <div id="skincare-stats" class="skincare-stats"></div>
-
-                <!-- Tab 切换 + 搜索 -->
-                <div class="skincare-tab-bar">
-                    <div class="skincare-tabs">
-                        <button class="skincare-tab active" data-tab="active">在库护肤品</button>
-                        <button class="skincare-tab" data-tab="archive">历史归档</button>
-                    </div>
-                    <div class="skincare-search-wrapper">
-                        <input type="text" id="skincare-search" placeholder="搜索护肤品..." class="skincare-search-input">
-                    </div>
-                </div>
-
+                <!-- 品类卡片网格 -->
                 <div class="filter-bar">
                     <div id="skincare-filter" class="filter-category-container"></div>
                 </div>
 
+                <!-- 物品列表 -->
                 <div id="skincare-list" class="item-list">
                     <div class="empty-tip">
                         <div class="empty-tip__icon empty-tip__icon--skincare">
                             <svg><use href="#icon-skincare"/></svg>
                         </div>
-                        <p class="empty-tip__text">化妆台空空如也 🧴</p>
+                        <p class="empty-tip__text">化妆台空空如也</p>
                         <p class="empty-tip__sub">帮你记录每一件护肤品</p>
                     </div>
                 </div>
@@ -686,12 +671,24 @@
             <section id="module-fridge" class="module hidden">
                 <div class="module-header">
                     <div class="module-header__left">
-                        <h2 class="module-title">
-                            <svg class="module-title__icon"><use href="#icon-fridge"/></svg>
-                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
-                            冰箱食材
-                        </h2>
+                        <h2 class="module-title">冰箱库存</h2>
                         <p class="page-subtitle">管理食材和保质期，减少浪费</p>
+                    </div>
+                </div>
+
+                <!-- 搜索栏 -->
+                <div class="search-bar">
+                    <input type="text" id="fridge-search" placeholder="搜索食材..." class="search-bar__input">
+                </div>
+
+                <!-- 状态统计卡 -->
+                <div id="fridge-stats" class="stats-row"></div>
+
+                <!-- Tab切换 + 新增按钮 -->
+                <div class="tab-action-row">
+                    <div class="tab-pill-group">
+                        <button class="tab-pill active" data-fridge-tab="active">在库</button>
+                        <button class="tab-pill" data-fridge-tab="archive">历史归档</button>
                     </div>
                     <button id="btn-add-fridge" class="btn btn-primary">
                         <svg class="btn__icon"><use href="#icon-plus"/></svg>
@@ -699,47 +696,65 @@
                     </button>
                 </div>
 
-                <!-- 快速添加 -->
-                <div class="quick-add">
-                    <div class="quick-add__label">
-                        <svg class="quick-add__icon"><use href="#icon-flash"/></svg>
-                        快速添加
-                    </div>
-                    <div id="fridge-quick-tags" class="quick-tags"></div>
-                </div>
-
-                <!-- 统计卡片 -->
-                <div id="fridge-stats" class="fridge-stats"></div>
-
-                <!-- Tab 切换 + 搜索 -->
-                <div class="fridge-tab-bar">
-                    <div class="fridge-tabs">
-                        <button class="fridge-tab active" data-tab="active">在库食材</button>
-                        <button class="fridge-tab" data-tab="archive">历史归档</button>
-                    </div>
-                    <div class="fridge-search-wrapper">
-                        <input type="text" id="fridge-search" placeholder="搜索食材..." class="fridge-search-input">
-                    </div>
-                </div>
-
+                <!-- 品类卡片网格 + 位置筛选 -->
                 <div class="filter-bar">
                     <div id="fridge-category-filter" class="filter-category-container"></div>
-                    <select id="fridge-filter">
-                        <option value="all">全部位置</option>
-                        <option value="冷藏">冷藏</option>
-                        <option value="冷冻">冷冻</option>
-                        <option value="保鲜">保鲜</option>
-                        <option value="门架">门架</option>
-                    </select>
                 </div>
 
+                <!-- 物品列表 -->
                 <div id="fridge-list" class="item-list">
                     <div class="empty-tip">
                         <div class="empty-tip__icon empty-tip__icon--fridge">
                             <svg><use href="#icon-fridge"/></svg>
                         </div>
-                        <p class="empty-tip__text">冰箱有点空哦 🥕</p>
+                        <p class="empty-tip__text">冰箱有点空哦</p>
                         <p class="empty-tip__sub">帮你管好冰箱，减少浪费</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 彩妆管理模块 -->
+            <section id="module-makeup" class="module hidden">
+                <div class="module-header">
+                    <div class="module-header__left">
+                        <h2 class="module-title">彩妆管理</h2>
+                        <p class="page-subtitle">记录你的彩妆收藏，临期自动提醒</p>
+                    </div>
+                </div>
+
+                <!-- 搜索栏 -->
+                <div class="search-bar">
+                    <input type="text" id="makeup-search" placeholder="搜索彩妆..." class="search-bar__input">
+                </div>
+
+                <!-- 状态统计卡 -->
+                <div id="makeup-stats" class="stats-row"></div>
+
+                <!-- Tab切换 + 新增按钮 -->
+                <div class="tab-action-row">
+                    <div class="tab-pill-group">
+                        <button class="tab-pill active" data-makeup-tab="active">在库</button>
+                        <button class="tab-pill" data-makeup-tab="archive">历史归档</button>
+                    </div>
+                    <button id="btn-add-makeup" class="btn btn-primary">
+                        <svg class="btn__icon"><use href="#icon-plus"/></svg>
+                        添加
+                    </button>
+                </div>
+
+                <!-- 品类卡片网格 -->
+                <div class="filter-bar">
+                    <div id="makeup-category-filter" class="filter-category-container"></div>
+                </div>
+
+                <!-- 物品列表 -->
+                <div id="makeup-list" class="item-list">
+                    <div class="empty-tip">
+                        <div class="empty-tip__icon">
+                            <svg><use href="#icon-sunglasses"/></svg>
+                        </div>
+                        <p class="empty-tip__text">彩妆台空空如也</p>
+                        <p class="empty-tip__sub">帮你记录每一件彩妆</p>
                     </div>
                 </div>
             </section>
@@ -748,12 +763,24 @@
             <section id="module-household" class="module hidden">
                 <div class="module-header">
                     <div class="module-header__left">
-                        <h2 class="module-title">
-                            <svg class="module-title__icon"><use href="#icon-house"/></svg>
-                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
-                            生活用品
-                        </h2>
+                        <h2 class="module-title">生活用品</h2>
                         <p class="page-subtitle">家居日用品库存管理，用完再买</p>
+                    </div>
+                </div>
+
+                <!-- 搜索栏 -->
+                <div class="search-bar">
+                    <input type="text" id="household-search" placeholder="搜索生活用品..." class="search-bar__input">
+                </div>
+
+                <!-- 状态统计卡 -->
+                <div id="household-stats" class="stats-row"></div>
+
+                <!-- Tab切换 + 新增按钮 -->
+                <div class="tab-action-row">
+                    <div class="tab-pill-group">
+                        <button class="tab-pill active" data-household-tab="active">在库</button>
+                        <button class="tab-pill" data-household-tab="archive">历史归档</button>
                     </div>
                     <button id="btn-add-household" class="btn btn-primary">
                         <svg class="btn__icon"><use href="#icon-plus"/></svg>
@@ -761,33 +788,18 @@
                     </button>
                 </div>
 
-                <!-- 快速添加 -->
-                <div class="quick-add">
-                    <div class="quick-add__label">
-                        <svg class="quick-add__icon"><use href="#icon-flash"/></svg>
-                        快速添加
-                    </div>
-                    <div id="household-quick-tags" class="quick-tags"></div>
-                </div>
-
+                <!-- 品类卡片网格 -->
                 <div class="filter-bar">
                     <div id="household-category-filter" class="filter-category-container"></div>
-                    <select id="household-location-filter">
-                        <option value="all">全部位置</option>
-                        <option value="卫生间">卫生间</option>
-                        <option value="厨房">厨房</option>
-                        <option value="阳台">阳台</option>
-                        <option value="储物柜">储物柜</option>
-                        <option value="其他">其他</option>
-                    </select>
                 </div>
 
+                <!-- 物品列表 -->
                 <div id="household-list" class="item-list">
                     <div class="empty-tip">
                         <div class="empty-tip__icon empty-tip__icon--household">
                             <svg><use href="#icon-house"/></svg>
                         </div>
-                        <p class="empty-tip__text">储物柜空空如也 🏠</p>
+                        <p class="empty-tip__text">储物柜空空如也</p>
                         <p class="empty-tip__sub">帮你管理家中日用品库存</p>
                     </div>
                 </div>
@@ -852,11 +864,7 @@
             <section id="module-health" class="module hidden">
                 <div class="module-header">
                     <div class="module-header__left">
-                        <h2 class="module-title">
-                            <svg class="module-title__icon"><use href="#icon-heart"/></svg>
-                            <svg class="module-title__deco"><use href="#icon-badge"/></svg>
-                            健康管理
-                        </h2>
+                        <h2 class="module-title">健康管理</h2>
                         <p class="page-subtitle">体重、血糖、经期、心情，一目了然</p>
                     </div>
                     <button id="btn-health-add" class="btn btn-primary">
@@ -866,9 +874,9 @@
                 </div>
 
                 <!-- Tab 切换 -->
-                <div class="health-tabs">
-                    <button class="health-tab active" data-health-tab="records">健康记录</button>
-                    <button class="health-tab" data-health-tab="mood">心情日志</button>
+                <div class="tab-pill-group" style="margin-bottom: 20px;">
+                    <button class="tab-pill active" data-health-tab="records">健康记录</button>
+                    <button class="tab-pill" data-health-tab="mood">心情日志</button>
                 </div>
 
                 <!-- 健康记录面板 -->
