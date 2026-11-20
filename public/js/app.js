@@ -149,12 +149,18 @@ const Modal = {
     },
 
     init() {
-        document.getElementById('modal-close').addEventListener('click', () => this.close());
-        document.getElementById('modal-overlay').addEventListener('click', (e) => {
-            if (e.target.id === 'modal-overlay') {
-                this.close();
-            }
-        });
+        const closeBtn = document.getElementById('modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.close());
+        }
+        const overlay = document.getElementById('modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (e.target.id === 'modal-overlay') {
+                    this.close();
+                }
+            });
+        }
     }
 };
 
@@ -1010,29 +1016,42 @@ const Auth = {
                 const tabName = tab.dataset.tab;
                 document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                document.getElementById('login-form').classList.toggle('hidden', tabName !== 'login');
-                document.getElementById('register-form').classList.toggle('hidden', tabName !== 'register');
-                document.getElementById('login-error').textContent = '';
-                document.getElementById('register-error').textContent = '';
+                const loginForm = document.getElementById('login-form');
+                const registerForm = document.getElementById('register-form');
+                const loginError = document.getElementById('login-error');
+                const registerError = document.getElementById('register-error');
+                if (loginForm) loginForm.classList.toggle('hidden', tabName !== 'login');
+                if (registerForm) registerForm.classList.toggle('hidden', tabName !== 'register');
+                if (loginError) loginError.textContent = '';
+                if (registerError) registerError.textContent = '';
             });
         });
 
         // 登录表单
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.handleLogin();
-        });
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleLogin();
+            });
+        }
 
         // 注册表单
-        document.getElementById('register-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.handleRegister();
-        });
+        const registerForm = document.getElementById('register-form');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleRegister();
+            });
+        }
 
         // 退出登录
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            this.logout();
-        });
+        const logoutBtn = document.getElementById('btn-logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+        }
     },
 
     async handleLogin() {
@@ -1645,20 +1664,81 @@ const Dashboard = {
     renderStatusCards(stats) {
         return `
             <div class="stats-row fade-in">
-                <div class="stat-card stat-card--expired" onclick="Nav.switchModule('fridge')">
+                <div class="stat-card stat-card--expired" onclick="Dashboard.jumpTo('fridge', 'expired')">
                     <div class="stat-card__num">${stats.expired}</div>
                     <div class="stat-card__label">已过期</div>
                 </div>
-                <div class="stat-card stat-card--urgent" onclick="Nav.switchModule('fridge')">
+                <div class="stat-card stat-card--urgent" onclick="Dashboard.jumpTo('fridge', 'expiring30')">
                     <div class="stat-card__num">${stats.expiring30}</div>
                     <div class="stat-card__label">30天临期</div>
                 </div>
-                <div class="stat-card stat-card--warning" onclick="Nav.switchModule('skincare')">
+                <div class="stat-card stat-card--warning" onclick="Dashboard.jumpTo('skincare', 'expiring90')">
                     <div class="stat-card__num">${stats.expiring90}</div>
                     <div class="stat-card__label">90天预警</div>
                 </div>
             </div>
         `;
+    },
+
+    // 跳转到指定模块并设置筛选
+    jumpTo(module, filter) {
+        // 重置各模块的过期筛选状态
+        Skincare.expiryFilter = null;
+        Fridge.expiryFilter = null;
+        Household.expiryFilter = null;
+        Makeup.expiryFilter = null;
+
+        // 根据模块和筛选条件设置状态
+        if (filter) {
+            if (module === 'skincare') {
+                Skincare.expiryFilter = filter;
+                Skincare.currentFilter = 'all';
+            } else if (module === 'fridge') {
+                Fridge.expiryFilter = filter;
+                Fridge.currentCategoryFilter = 'all';
+            } else if (module === 'household') {
+                Household.expiryFilter = filter;
+                Household.currentCategoryFilter = 'all';
+            } else if (module === 'makeup') {
+                Makeup.expiryFilter = filter;
+                Makeup.currentFilter = 'all';
+            }
+        } else {
+            // 无筛选时重置分类筛选为全部
+            if (module === 'skincare') {
+                Skincare.currentFilter = 'all';
+            } else if (module === 'fridge') {
+                Fridge.currentCategoryFilter = 'all';
+            } else if (module === 'household') {
+                Household.currentCategoryFilter = 'all';
+            } else if (module === 'makeup') {
+                Makeup.currentFilter = 'all';
+            }
+        }
+
+        // 跳转到对应模块
+        Nav.switchModule(module);
+
+        // 跳转后触发数据刷新（确保筛选生效）
+        setTimeout(() => {
+            if (module === 'skincare') {
+                Skincare.renderCategoryGrid();
+                Skincare.renderSummary();
+                Skincare.renderList();
+            } else if (module === 'fridge') {
+                Fridge.renderCategoryGrid();
+                Fridge.renderSummary();
+                Fridge.renderList();
+            } else if (module === 'household') {
+                Household.renderCategoryGrid();
+                Household.renderSummary();
+                Household.renderList();
+            } else if (module === 'makeup') {
+                Makeup.renderCategoryGrid();
+                Makeup.renderSummary();
+                Makeup.renderList();
+            }
+        }, 50);
     },
 
     // 第一行：30天冰箱到期 | 90天护肤品到期
@@ -2327,17 +2407,23 @@ const Skincare = {
         });
 
         // 新增按钮
-        document.getElementById('btn-add-skincare').addEventListener('click', () => {
-            this.showForm();
-        });
+        const addBtn = document.getElementById('btn-add-skincare');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                this.showForm();
+            });
+        }
 
-        // 快速添加标签
-        QuickTags.render(
-            'skincare-quick-tags',
-            QuickTags.skincare,
-            (item) => this.showForm(null, item),  // 点击：打开弹窗并预填
-            (item) => this.quickAdd(item)        // 长按：直接添加
-        );
+        // 快速添加标签（兼容旧版）
+        const quickTagsEl = document.getElementById('skincare-quick-tags');
+        if (quickTagsEl && typeof QuickTags !== 'undefined') {
+            QuickTags.render(
+                'skincare-quick-tags',
+                QuickTags.skincare,
+                (item) => this.showForm(null, item),  // 点击：打开弹窗并预填
+                (item) => this.quickAdd(item)        // 长按：直接添加
+            );
+        }
     },
 
     // 快捷添加（直接添加，不弹窗）
@@ -2414,19 +2500,28 @@ const Skincare = {
         const expired = s.expired || 0;
 
         statsEl.innerHTML = `
-            <div class="stat-card stat-card--expired">
+            <div class="stat-card stat-card--expired ${this.expiryFilter==='expired'?'active':''}" onclick="Skincare.setExpiryFilter('expired')">
                 <div class="stat-card__num">${expired}</div>
                 <div class="stat-card__label">已过期</div>
             </div>
-            <div class="stat-card stat-card--urgent">
+            <div class="stat-card stat-card--urgent ${this.expiryFilter==='expiring90'?'active':''}" onclick="Skincare.setExpiryFilter('expiring90')">
                 <div class="stat-card__num">${expiring90}</div>
                 <div class="stat-card__label">90天临期</div>
             </div>
-            <div class="stat-card stat-card--warning">
+            <div class="stat-card stat-card--warning ${this.expiryFilter===null?'active':''}" onclick="Skincare.setExpiryFilter(null)">
                 <div class="stat-card__num">${totalCount}</div>
                 <div class="stat-card__label">在库总数</div>
             </div>
         `;
+    },
+
+    // 设置过期状态筛选
+    setExpiryFilter(filter) {
+        this.expiryFilter = filter;
+        this.currentFilter = 'all'; // 分类筛选重置为全部
+        this.renderCategoryGrid();
+        this.renderSummary();
+        this.renderList();
     },
 
     // 渲染品类卡片网格（工作台模式）
@@ -2953,11 +3048,14 @@ const Fridge = {
             });
         }
 
-        // 位置筛选
-        document.getElementById('fridge-filter').addEventListener('change', (e) => {
-            this.currentLocationFilter = e.target.value;
-            this.renderList();
-        });
+        // 位置筛选（兼容旧版下拉筛选器）
+        const locationFilter = document.getElementById('fridge-filter');
+        if (locationFilter) {
+            locationFilter.addEventListener('change', (e) => {
+                this.currentLocationFilter = e.target.value;
+                this.renderList();
+            });
+        }
 
         // 搜索框
         const searchInput = document.getElementById('fridge-search');
@@ -2981,17 +3079,23 @@ const Fridge = {
         });
 
         // 新增按钮
-        document.getElementById('btn-add-fridge').addEventListener('click', () => {
-            this.showForm();
-        });
+        const addBtn = document.getElementById('btn-add-fridge');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                this.showForm();
+            });
+        }
 
-        // 快速添加标签
-        QuickTags.render(
-            'fridge-quick-tags',
-            QuickTags.fridge,
-            (item) => this.showForm(null, item),  // 点击：打开弹窗并预填
-            (item) => this.quickAdd(item)        // 长按：直接添加
-        );
+        // 快速添加标签（兼容旧版）
+        const quickTagsEl = document.getElementById('fridge-quick-tags');
+        if (quickTagsEl && typeof QuickTags !== 'undefined') {
+            QuickTags.render(
+                'fridge-quick-tags',
+                QuickTags.fridge,
+                (item) => this.showForm(null, item),  // 点击：打开弹窗并预填
+                (item) => this.quickAdd(item)        // 长按：直接添加
+            );
+        }
     },
 
     // 快捷添加（直接添加，不弹窗）
@@ -3054,19 +3158,28 @@ const Fridge = {
         const warning90 = s.expiring90 || 0;
 
         statsEl.innerHTML = `
-            <div class="stat-card stat-card--expired">
+            <div class="stat-card stat-card--expired ${this.expiryFilter==='expired'?'active':''}" onclick="Fridge.setExpiryFilter('expired')">
                 <div class="stat-card__num">${expired}</div>
                 <div class="stat-card__label">已过期</div>
             </div>
-            <div class="stat-card stat-card--urgent">
+            <div class="stat-card stat-card--urgent ${this.expiryFilter==='expiring30'?'active':''}" onclick="Fridge.setExpiryFilter('expiring30')">
                 <div class="stat-card__num">${expiring30}</div>
                 <div class="stat-card__label">30天临期</div>
             </div>
-            <div class="stat-card stat-card--warning">
+            <div class="stat-card stat-card--warning ${this.expiryFilter==='expiring90'?'active':''}" onclick="Fridge.setExpiryFilter('expiring90')">
                 <div class="stat-card__num">${warning90}</div>
                 <div class="stat-card__label">90天预警</div>
             </div>
         `;
+    },
+
+    // 设置过期状态筛选
+    setExpiryFilter(filter) {
+        this.expiryFilter = filter;
+        this.currentCategoryFilter = 'all'; // 分类筛选重置为全部
+        this.renderCategoryGrid();
+        this.renderSummary();
+        this.renderList();
     },
 
     // 渲染品类卡片网格（工作台模式）
@@ -3544,6 +3657,7 @@ const Household = {
     searchQuery: '',
     summary: null,
     _formCategory: '',
+    expiryFilter: null, // 过期状态筛选：null/'expired'/'expiring30'/'expiring90'
 
     init() {
         // 搜索框
@@ -3653,19 +3767,28 @@ const Household = {
         });
 
         statsEl.innerHTML = `
-            <div class="stat-card stat-card--expired">
+            <div class="stat-card stat-card--expired ${this.expiryFilter==='expired'?'active':''}" onclick="Household.setExpiryFilter('expired')">
                 <div class="stat-card__num">${expired}</div>
                 <div class="stat-card__label">已过期</div>
             </div>
-            <div class="stat-card stat-card--urgent">
+            <div class="stat-card stat-card--urgent ${this.expiryFilter==='expiring30'?'active':''}" onclick="Household.setExpiryFilter('expiring30')">
                 <div class="stat-card__num">${expiring30}</div>
                 <div class="stat-card__label">30天临期</div>
             </div>
-            <div class="stat-card stat-card--warning">
+            <div class="stat-card stat-card--warning ${this.expiryFilter===null?'active':''}" onclick="Household.setExpiryFilter(null)">
                 <div class="stat-card__num">${total}</div>
                 <div class="stat-card__label">在库总数</div>
             </div>
         `;
+    },
+
+    // 设置过期状态筛选
+    setExpiryFilter(filter) {
+        this.expiryFilter = filter;
+        this.currentCategoryFilter = 'all'; // 分类筛选重置为全部
+        this.renderCategoryGrid();
+        this.renderSummary();
+        this.renderList();
     },
 
     // 渲染品类卡片网格
@@ -3765,6 +3888,18 @@ const Household = {
 
         if (this.currentLocationFilter !== 'all') {
             filtered = filtered.filter(item => item.storageLocation === this.currentLocationFilter);
+        }
+
+        // 过期状态筛选
+        if (this.expiryFilter) {
+            filtered = filtered.filter(item => {
+                const days = this.getExpiryDays(item);
+                if (days === null) return false;
+                if (this.expiryFilter === 'expired') return days < 0;
+                if (this.expiryFilter === 'expiring30') return days >= 0 && days <= 30;
+                if (this.expiryFilter === 'expiring90') return days >= 0 && days <= 90;
+                return true;
+            });
         }
 
         // 按过期时间排序
@@ -4068,8 +4203,10 @@ const Diary = {
                 this.currentView = btn.dataset.view;
                 document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                document.getElementById('diary-list-view').classList.toggle('hidden', this.currentView !== 'list');
-                document.getElementById('diary-calendar-view').classList.toggle('hidden', this.currentView !== 'calendar');
+                const listView = document.getElementById('diary-list-view');
+                const calView = document.getElementById('diary-calendar-view');
+                if (listView) listView.classList.toggle('hidden', this.currentView !== 'list');
+                if (calView) calView.classList.toggle('hidden', this.currentView !== 'calendar');
                 if (this.currentView === 'calendar') {
                     this.renderCalendar();
                 }
@@ -4077,19 +4214,28 @@ const Diary = {
         });
 
         // 日历导航
-        document.getElementById('cal-prev').addEventListener('click', () => {
-            this.currentMonth.setMonth(this.currentMonth.getMonth() - 1);
-            this.renderCalendar();
-        });
-        document.getElementById('cal-next').addEventListener('click', () => {
-            this.currentMonth.setMonth(this.currentMonth.getMonth() + 1);
-            this.renderCalendar();
-        });
+        const calPrev = document.getElementById('cal-prev');
+        if (calPrev) {
+            calPrev.addEventListener('click', () => {
+                this.currentMonth.setMonth(this.currentMonth.getMonth() - 1);
+                this.renderCalendar();
+            });
+        }
+        const calNext = document.getElementById('cal-next');
+        if (calNext) {
+            calNext.addEventListener('click', () => {
+                this.currentMonth.setMonth(this.currentMonth.getMonth() + 1);
+                this.renderCalendar();
+            });
+        }
 
         // 新增按钮
-        document.getElementById('btn-add-diary').addEventListener('click', () => {
-            this.showForm();
-        });
+        const addBtn = document.getElementById('btn-add-diary');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                this.showForm();
+            });
+        }
     },
 
     async loadData() {
@@ -4492,34 +4638,52 @@ const Health = {
         }
 
         // 查询按钮
-        document.getElementById('btn-query-health').addEventListener('click', () => {
-            const start = document.getElementById('health-start-date').value;
-            const end = document.getElementById('health-end-date').value;
-            this.queryHistory(start, end);
-        });
+        const queryBtn = document.getElementById('btn-query-health');
+        if (queryBtn) {
+            queryBtn.addEventListener('click', () => {
+                const startEl = document.getElementById('health-start-date');
+                const endEl = document.getElementById('health-end-date');
+                const start = startEl ? startEl.value : '';
+                const end = endEl ? endEl.value : '';
+                this.queryHistory(start, end);
+            });
+        }
 
         // 日期变化时加载对应记录
-        document.getElementById('health-date').addEventListener('change', (e) => {
-            this.currentDate = e.target.value;
-            this.loadByDate(e.target.value);
-        });
+        const dateInput = document.getElementById('health-date');
+        if (dateInput) {
+            dateInput.addEventListener('change', (e) => {
+                this.currentDate = e.target.value;
+                this.loadByDate(e.target.value);
+            });
+        }
 
         // 日历导航
-        document.getElementById('health-cal-prev').addEventListener('click', () => {
-            this.prevMonth();
-        });
-        document.getElementById('health-cal-next').addEventListener('click', () => {
-            this.nextMonth();
-        });
+        const calPrev = document.getElementById('health-cal-prev');
+        if (calPrev) {
+            calPrev.addEventListener('click', () => {
+                this.prevMonth();
+            });
+        }
+        const calNext = document.getElementById('health-cal-next');
+        if (calNext) {
+            calNext.addEventListener('click', () => {
+                this.nextMonth();
+            });
+        }
 
         // 初始化日期
-        document.getElementById('health-date').value = Utils.today();
+        if (dateInput) {
+            dateInput.value = Utils.today();
+        }
 
         // 初始化查询日期（默认近30天）
         const today = new Date();
         const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-        document.getElementById('health-end-date').value = Utils.today();
-        document.getElementById('health-start-date').value = Utils.formatDate(thirtyDaysAgo);
+        const endDateEl = document.getElementById('health-end-date');
+        if (endDateEl) endDateEl.value = Utils.today();
+        const startDateEl = document.getElementById('health-start-date');
+        if (startDateEl) startDateEl.value = Utils.formatDate(thirtyDaysAgo);
 
         // 加载今日记录
         this.loadByDate(Utils.today());
@@ -5158,6 +5322,7 @@ const Makeup = {
     currentTab: 'active',
     searchQuery: '',
     summary: null,
+    expiryFilter: null, // 过期状态筛选：null/'expired'/'expiring30'/'expiring90'
 
     // 彩妆分类
     categories: ['口红', '粉底', '眼影', '腮红', '睫毛膏', '眉笔', '高光', '遮瑕', '散粉'],
@@ -5260,19 +5425,28 @@ const Makeup = {
         const expired = s.expired || 0;
 
         statsEl.innerHTML = `
-            <div class="stat-card stat-card--expired">
+            <div class="stat-card stat-card--expired ${this.expiryFilter==='expired'?'active':''}" onclick="Makeup.setExpiryFilter('expired')">
                 <div class="stat-card__num">${expired}</div>
                 <div class="stat-card__label">已过期</div>
             </div>
-            <div class="stat-card stat-card--urgent">
+            <div class="stat-card stat-card--urgent ${this.expiryFilter==='expiring90'?'active':''}" onclick="Makeup.setExpiryFilter('expiring90')">
                 <div class="stat-card__num">${expiring90}</div>
                 <div class="stat-card__label">90天临期</div>
             </div>
-            <div class="stat-card stat-card--warning">
+            <div class="stat-card stat-card--warning ${this.expiryFilter===null?'active':''}" onclick="Makeup.setExpiryFilter(null)">
                 <div class="stat-card__num">${totalCount}</div>
                 <div class="stat-card__label">在库总数</div>
             </div>
         `;
+    },
+
+    // 设置过期状态筛选
+    setExpiryFilter(filter) {
+        this.expiryFilter = filter;
+        this.currentFilter = 'all'; // 分类筛选重置为全部
+        this.renderCategoryGrid();
+        this.renderSummary();
+        this.renderList();
     },
 
     // 渲染品类卡片网格
@@ -5356,6 +5530,18 @@ const Makeup = {
         let filtered = this.list;
         if (this.currentFilter !== 'all') {
             filtered = filtered.filter(item => (item.category || '其他') === this.currentFilter);
+        }
+
+        // 过期状态筛选
+        if (this.expiryFilter) {
+            filtered = filtered.filter(item => {
+                const days = this.getExpiryDays(item);
+                if (days === null) return false;
+                if (this.expiryFilter === 'expired') return days < 0;
+                if (this.expiryFilter === 'expiring30') return days >= 0 && days <= 30;
+                if (this.expiryFilter === 'expiring90') return days >= 0 && days <= 90;
+                return true;
+            });
         }
 
         if (filtered.length === 0) {
